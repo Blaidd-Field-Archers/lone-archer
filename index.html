@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a2e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Archery Club">
+<title>Archery Club Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+<!-- ═══════════════════════════════════════════════════════════
+     SETUP: Replace the Firebase config below with your own.
+     See SETUP.md for step-by-step instructions.
+     ═══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import { getFirestore, collection, addDoc, updateDoc, doc, query, orderBy, limit, getDocs, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyD3wP0IZXyMylktdjtoS7Eo_sCjSXT7WvA",
+  authDomain: "blaidd-lone-archer.firebaseapp.com",
+  projectId: "blaidd-lone-archer",
+  storageBucket: "blaidd-lone-archer.firebasestorage.app",
+  messagingSenderId: "1037274086483",
+  appId: "1:1037274086483:web:b2cf8448a669d5a01c9aa6"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+let db = null;
+let firebaseReady = false;
+
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  firebaseReady = true;
+  console.log("Firebase connected");
+} catch(e) {
+  console.warn("Firebase not configured — running in local-only mode", e);
+}
+
+// ── STATE ─────────────────────────────────────────────────────
+let member = null;
+let session = null;
+let activeDocId = null; // Firestore document ID for current sign-in
+
+const KEYS = { member: 'archery_member', session: 'archery_session', history: 'archery_history' };
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  const raw = localStorage.getItem(KEYS.member);
+  if (raw) {
+    member = JSON.parse(raw);
+    const sessRaw = localStorage.getItem(KEYS.session);
+    if (sessRaw) {
+      const s = JSON.parse(sessRaw);
+      session = { timeIn: new Date(s.timeIn), timeOut: null };
+      activeDocId = s.docId || null;
+    }
+    renderWelcome();
+    showScreen('screenWelcome');
+  } else {
+    showScreen('screenRegister');
+    document.getElementById('btnCancelReg').style.display = 'none';
+  }
+  renderFirebaseStatus();
+}
+
+function renderFirebaseStatus() {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (firebaseReady) {
+    el.textContent = '✓ Central log connected';
+    el.style.color = 'rgba(122,170,106,0.7)';
+  } else {
+    el.textContent = '⚠ Central log not configured — local only';
+    el.style.color = 'rgba(200,168,75,0.6)';
+  }
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────
+window.showScreen = function(id, isEdit) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screenRegister' && isEdit && member) {
+    document.getElementById('regTitle').textContent = 'Edit My Details';
+    document.getElementById('regSub').textContent = 'Update your registered information below.';
+    document.getElementById('inputName').value = member.name;
+    document.getElementById('inputEmail').value = member.email;
+    document.getElementById('inputPhone').value = member.phone;
+    document.getElementById('inputNFAS').value = member.nfas;
+    document.getElementById('btnCancelReg').style.display = '';
+  } else if (id === 'screenRegister') {
+    document.getElementById('regTitle').textContent = 'Join the Club';
+    document.getElementById('regSub').textContent = 'Register your details to use the sign-in system. Your information is stored only on this device.';
+  }
+  if (id === 'screenAdmin') loadAdminLog();
+}
+
+// ── REGISTRATION ──────────────────────────────────────────────
+window.saveRegistration = async function() {
+  const name = document.getElementById('inputName').value.trim();
+  const email = document.getElementById('inputEmail').value.trim();
+  const phone = document.getElementById('inputPhone').value.trim();
+  const nfas = document.getElementById('inputNFAS').value.trim();
+
+  if (!name) { showToast('Please enter your name'); return; }
+  if (!email || !email.includes('@')) { showToast('Please enter a valid email'); return; }
+  if (!phone) { showToast('Please enter your phone number'); return; }
+  if (!nfas) { showToast('Please enter your NFAS number'); return; }
+
+  member = { name, email, phone, nfas };
+  localStorage.setItem(KEYS.member, JSON.stringify(member));
+
+  // Register member in Firestore (upsert by NFAS number)
+  if (firebaseReady) {
+    try {
+      const membersRef = collection(db, 'members');
+      const q = query(membersRef, where('nfas', '==', nfas));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        await addDoc(membersRef, { name, email, phone, nfas, registeredAt: serverTimestamp() });
+      } else {
+        await updateDoc(doc(db, 'members', snap.docs[0].id), { name, email, phone, updatedAt: serverTimestamp() });
+      }
+    } catch(e) { console.warn('Member sync failed', e); }
+  }
+
+  renderWelcome();
+  showScreen('screenWelcome');
+  showToast('Details saved');
+}
+
+// ── WELCOME RENDER ────────────────────────────────────────────
+function renderWelcome() {
+  if (!member) return;
+  const initials = member.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('memberAvatar').textContent = initials;
+  document.getElementById('memberName').textContent = member.name;
+  document.getElementById('memberId').textContent = member.nfas;
+  document.getElementById('btnCancelReg').style.display = '';
+  renderSession();
+  renderHistory();
+}
+
+function renderSession() {
+  const btnIn  = document.getElementById('btnSignIn');
+  const btnOut = document.getElementById('btnSignOut');
+  const badge  = document.getElementById('statusBadge');
+  const statusText = document.getElementById('statusText');
+
+  if (!session || !session.timeIn) {
+    btnIn.style.display = ''; btnOut.style.display = 'none';
+    badge.className = 'status-badge signed-out';
+    statusText.textContent = 'Not signed in';
+    setTimeBox(null, 'timeInDisplay', 'dateInDisplay', 'boxIn');
+    setTimeBox(null, 'timeOutDisplay', 'dateOutDisplay', 'boxOut');
+  } else if (session.timeIn && !session.timeOut) {
+    btnIn.style.display = 'none'; btnOut.style.display = '';
+    badge.className = 'status-badge signed-in';
+    statusText.textContent = 'Currently signed in';
+    setTimeBox(session.timeIn, 'timeInDisplay', 'dateInDisplay', 'boxIn');
+    setTimeBox(null, 'timeOutDisplay', 'dateOutDisplay', 'boxOut');
+  }
+}
+
+function setTimeBox(date, timeId, dateId, boxId) {
+  const timeEl = document.getElementById(timeId);
+  const dateEl = document.getElementById(dateId);
+  const box    = document.getElementById(boxId);
+  if (date) {
+    timeEl.textContent = formatTime(date);
+    timeEl.className = 'time-display';
+    dateEl.textContent = formatDate(date);
+    box.classList.add('has-time');
+  } else {
+    timeEl.textContent = '—';
+    timeEl.className = 'time-display empty';
+    dateEl.textContent = '';
+    box.classList.remove('has-time');
+  }
+}
+
+// ── SIGN IN ───────────────────────────────────────────────────
+window.handleSignIn = async function() {
+  const now = new Date();
+  session = { timeIn: now, timeOut: null };
+  activeDocId = null;
+
+  // Write to Firestore
+  if (firebaseReady) {
+    try {
+      const docRef = await addDoc(collection(db, 'sessions'), {
+        name: member.name,
+        email: member.email,
+        phone: member.phone,
+        nfas: member.nfas,
+        timeIn: now.toISOString(),
+        timeInTs: serverTimestamp(),
+        timeOut: null,
+        timeOutTs: null,
+        status: 'in'
+      });
+      activeDocId = docRef.id;
+      showToast('Signed in — welcome!');
+    } catch(e) {
+      console.warn('Cloud sync failed', e);
+      showToast('Signed in (offline — will sync later)');
+    }
+  } else {
+    showToast('Signed in — welcome!');
+  }
+
+  localStorage.setItem(KEYS.session, JSON.stringify({ timeIn: now.toISOString(), docId: activeDocId }));
+  renderSession();
+}
+
+// ── SIGN OUT ──────────────────────────────────────────────────
+window.requestSignOut = function() {
+  document.getElementById('signoutConfirm').classList.add('visible');
+  document.getElementById('btnSignOut').style.display = 'none';
+}
+
+window.cancelSignOut = function() {
+  document.getElementById('signoutConfirm').classList.remove('visible');
+  document.getElementById('btnSignOut').style.display = '';
+}
+
+window.confirmSignOut = async function() {
+  const now = new Date();
+  session.timeOut = now;
+
+  // Update Firestore document
+  if (firebaseReady && activeDocId) {
+    try {
+      await updateDoc(doc(db, 'sessions', activeDocId), {
+        timeOut: now.toISOString(),
+        timeOutTs: serverTimestamp(),
+        status: 'complete',
+        durationMinutes: Math.round((now - session.timeIn) / 60000)
+      });
+    } catch(e) { console.warn('Cloud sign-out sync failed', e); }
+  }
+
+  // Local history
+  const histRaw = localStorage.getItem(KEYS.history);
+  const history = histRaw ? JSON.parse(histRaw) : [];
+  history.unshift({ timeIn: session.timeIn.toISOString(), timeOut: now.toISOString() });
+  if (history.length > 10) history.splice(10);
+  localStorage.setItem(KEYS.history, JSON.stringify(history));
+  localStorage.removeItem(KEYS.session);
+
+  session = null; activeDocId = null;
+  document.getElementById('signoutConfirm').classList.remove('visible');
+  renderSession();
+  renderHistory();
+  showToast('Signed out — goodbye!');
+}
+
+// ── LOCAL HISTORY ─────────────────────────────────────────────
+function renderHistory() {
+  const histRaw = localStorage.getItem(KEYS.history);
+  const history = histRaw ? JSON.parse(histRaw) : [];
+  const list = document.getElementById('historyList');
+  if (!history.length) {
+    list.innerHTML = '<div class="no-sessions">No sessions recorded yet</div>';
+    return;
+  }
+  list.innerHTML = history.slice(0, 5).map(s => {
+    const tin = new Date(s.timeIn);
+    const tout = new Date(s.timeOut);
+    const dur = Math.round((tout - tin) / 60000);
+    const durStr = dur < 60 ? dur + 'm' : Math.floor(dur/60) + 'h ' + (dur%60) + 'm';
+    return `<div class="history-item">
+      <div>
+        <div class="history-date">${formatShortDate(tin)}</div>
+        <div class="history-times">${formatTime(tin)} → ${formatTime(tout)}</div>
+      </div>
+      <div class="history-duration">${durStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── ADMIN LOG ─────────────────────────────────────────────────
+window.loadAdminLog = async function() {
+  const tbody = document.getElementById('adminTbody');
+  const counter = document.getElementById('adminCounter');
+  const presentList = document.getElementById('presentList');
+
+  tbody.innerHTML = '<tr><td colspan="5" class="log-loading">Loading…</td></tr>';
+  presentList.innerHTML = '<div class="no-sessions">Loading…</div>';
+
+  if (!firebaseReady) {
+    tbody.innerHTML = '<tr><td colspan="5" class="log-loading">Firebase not configured — see SETUP.md</td></tr>';
+    presentList.innerHTML = '<div class="no-sessions">Not available</div>';
+    return;
+  }
+
+  try {
+    // Who's currently on site
+    const presentQ = query(collection(db, 'sessions'), where('status', '==', 'in'));
+    const presentSnap = await getDocs(presentQ);
+    const presentMembers = presentSnap.docs.map(d => d.data());
+    counter.textContent = presentMembers.length;
+
+    if (presentMembers.length === 0) {
+      presentList.innerHTML = '<div class="no-sessions">No members currently on site</div>';
+    } else {
+      presentList.innerHTML = presentMembers.map(m => `
+        <div class="present-item">
+          <div class="present-avatar">${m.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+          <div>
+            <div class="present-name">${escHtml(m.name)}</div>
+            <div class="present-meta">${escHtml(m.nfas)} · since ${formatTime(new Date(m.timeIn))}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    // Full session log (last 100)
+    const logQ = query(collection(db, 'sessions'), orderBy('timeInTs', 'desc'), limit(100));
+    const logSnap = await getDocs(logQ);
+
+    if (logSnap.empty) {
+      tbody.innerHTML = '<tr><td colspan="5" class="log-loading">No sessions recorded yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logSnap.docs.map(d => {
+      const s = d.data();
+      const tin = new Date(s.timeIn);
+      const tout = s.timeOut ? new Date(s.timeOut) : null;
+      const dur = tout ? Math.round((tout - tin) / 60000) : null;
+      const durStr = dur === null ? '—'
+        : dur < 60 ? dur + 'm'
+        : Math.floor(dur/60) + 'h ' + (dur%60) + 'm';
+      const statusCls = s.status === 'in' ? 'badge-in' : 'badge-done';
+      const statusLabel = s.status === 'in' ? 'On site' : 'Complete';
+      return `<tr>
+        <td><div class="log-name">${escHtml(s.name)}</div><div class="log-meta">${escHtml(s.nfas)}</div></td>
+        <td>${formatShortDate(tin)}</td>
+        <td>${formatTime(tin)}</td>
+        <td>${tout ? formatTime(tout) : '—'}</td>
+        <td><span class="log-badge ${statusCls}">${statusLabel}</span><div class="log-dur">${durStr}</div></td>
+      </tr>`;
+    }).join('');
+
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="5" class="log-loading">Error: ${escHtml(e.message)}</td></tr>`;
+    console.error(e);
+  }
+}
+
+window.exportCSV = async function() {
+  if (!firebaseReady) { showToast('Firebase not configured'); return; }
+  try {
+    const q = query(collection(db, 'sessions'), orderBy('timeInTs', 'desc'), limit(1000));
+    const snap = await getDocs(q);
+    const rows = [['Name','NFAS','Email','Phone','Date','Time In','Time Out','Duration (min)','Status']];
+    snap.docs.forEach(d => {
+      const s = d.data();
+      const tin = new Date(s.timeIn);
+      const tout = s.timeOut ? new Date(s.timeOut) : null;
+      const dur = tout ? Math.round((tout - tin) / 60000) : '';
+      rows.push([
+        s.name, s.nfas, s.email || '', s.phone || '',
+        formatShortDate(tin), formatTime(tin),
+        tout ? formatTime(tout) : '',
+        dur, s.status
+      ]);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `archery-log-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    showToast('CSV downloaded');
+  } catch(e) { showToast('Export failed: ' + e.message); }
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────
+function formatTime(d) { return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+function formatDate(d) { return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); }
+function formatShortDate(d) { return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' }); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+window.showToast = function(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+window.confirmClearData = function() {
+  if (confirm('This will delete all your personal data from this device. Are you sure?')) {
+    [KEYS.member, KEYS.session, KEYS.history].forEach(k => localStorage.removeItem(k));
+    member = null; session = null; activeDocId = null;
+    ['inputName','inputEmail','inputPhone','inputNFAS'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('regTitle').textContent = 'Join the Club';
+    document.getElementById('regSub').textContent = 'Register your details to use the sign-in system. Your information is stored only on this device.';
+    document.getElementById('btnCancelReg').style.display = 'none';
+    showScreen('screenRegister');
+  }
+}
+
+// ── ADMIN PIN ─────────────────────────────────────────────────
+// Change this PIN to something only your admins know
+const ADMIN_PIN = '1805';
+
+window.openAdmin = function() {
+  const pin = prompt('Enter admin PIN:');
+  if (pin === ADMIN_PIN) {
+    showScreen('screenAdmin');
+  } else if (pin !== null) {
+    showToast('Incorrect PIN');
+  }
+}
+
+init();
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --forest: #1a2e1a; --moss: #2d4a2d; --leaf: #4a7c4a; --sage: #7aaa6a;
+    --cream: #f5f0e8; --parchment: #ede7d3; --gold: #c8a84b; --gold-light: #e8c86a;
+    --bark: #6b4e35; --shadow: rgba(10,20,10,0.6); --radius: 12px;
+  }
+
+  html, body {
+    height: 100%; font-family: 'Crimson Pro', Georgia, serif;
+    background: var(--forest); color: var(--cream); overflow: hidden;
+  }
+
+  body {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; min-height: 100dvh;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(74,124,74,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(45,74,45,0.2) 0%, transparent 50%),
+      var(--forest);
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px);
+  }
+
+  .app {
+    width: 100%; max-width: 480px; min-height: 100dvh;
+    display: flex; flex-direction: column;
+    position: relative; z-index: 1; overflow-y: auto; overflow-x: hidden;
+  }
+
+  header {
+    padding: 24px 24px 18px; text-align: center;
+    border-bottom: 1px solid rgba(200,168,75,0.25); flex-shrink: 0;
+  }
+
+  .target-icon { width: 48px; height: 48px; margin: 0 auto 10px; }
+
+  .club-name {
+    font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600;
+    color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase;
+  }
+
+  .club-tagline { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; margin-top: 3px; }
+
+  .sync-status { font-size: 11px; margin-top: 6px; letter-spacing: 0.03em; }
+
+  .screen {
+    display: none; flex-direction: column; flex: 1;
+    padding: 22px 22px 32px; animation: fadeIn 0.3s ease;
+  }
+  .screen.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* MEMBER BAR */
+  .member-bar {
+    background: rgba(45,74,45,0.3); border: 1px solid rgba(200,168,75,0.15);
+    border-radius: 10px; padding: 13px 15px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .member-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600;
+    color: var(--sage); flex-shrink: 0;
+  }
+  .member-info { flex: 1; min-width: 0; }
+  .member-name { font-size: 15px; font-weight: 500; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .member-id   { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; }
+
+  /* STATUS */
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 14px; border-radius: 999px; font-size: 13px;
+    font-style: italic; margin-bottom: 20px; align-self: flex-start;
+  }
+  .status-badge.signed-in  { background: rgba(74,124,74,0.25); border: 1px solid rgba(122,170,106,0.4); color: var(--sage); }
+  .status-badge.signed-out { background: rgba(107,78,53,0.2);  border: 1px solid rgba(107,78,53,0.35);  color: rgba(245,240,232,0.5); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .signed-in  .status-dot { background: var(--sage); box-shadow: 0 0 6px rgba(122,170,106,0.5); }
+  .signed-out .status-dot { background: rgba(245,240,232,0.3); }
+
+  /* TIME BOXES */
+  .time-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .time-box {
+    background: rgba(45,74,45,0.4); border: 1px solid rgba(200,168,75,0.2);
+    border-radius: var(--radius); padding: 16px 12px; text-align: center;
+    position: relative; overflow: hidden; transition: all 0.25s ease;
+  }
+  .time-box.has-time { border-color: rgba(200,168,75,0.5); background: rgba(45,74,45,0.6); }
+  .time-box::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .time-box.has-time::before { opacity: 1; }
+  .time-box-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; display: block; }
+  .time-box-arrow { font-size: 20px; margin-bottom: 6px; display: block; opacity: 0.7; }
+  .time-display { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; color: var(--cream); letter-spacing: 0.06em; min-height: 26px; display: flex; align-items: center; justify-content: center; }
+  .time-display.empty { font-family: 'Crimson Pro', serif; font-size: 13px; color: rgba(245,240,232,0.3); font-style: italic; font-weight: 300; }
+  .time-date { font-size: 11px; color: rgba(245,240,232,0.4); margin-top: 4px; font-style: italic; min-height: 16px; }
+
+  /* BUTTONS */
+  .btn {
+    width: 100%; padding: 15px 20px; border-radius: var(--radius);
+    font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase;
+    cursor: pointer; border: none; transition: all 0.2s ease;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary  { background: linear-gradient(135deg, #4a7c4a, #2d5a2d); color: var(--cream); border: 1px solid rgba(122,170,106,0.4); margin-bottom: 11px; }
+  .btn-primary:hover { background: linear-gradient(135deg, #5a8c5a, #3d6a3d); }
+  .btn-secondary { background: transparent; color: rgba(200,168,75,0.8); border: 1px solid rgba(200,168,75,0.3); }
+  .btn-secondary:hover { border-color: rgba(200,168,75,0.6); color: var(--gold); }
+  .btn-admin { background: transparent; color: rgba(200,168,75,0.5); border: 1px solid rgba(200,168,75,0.15); font-size: 11px; padding: 10px 20px; margin-top: 6px; }
+  .btn-admin:hover { border-color: rgba(200,168,75,0.35); color: rgba(200,168,75,0.8); }
+  .btn-danger { background: transparent; color: rgba(200,100,100,0.65); border: 1px solid rgba(200,100,100,0.2); font-size: 11px; padding: 10px 20px; margin-top: 6px; }
+
+  /* SIGN-OUT CONFIRM */
+  .signout-confirm {
+    display: none; background: rgba(26,46,26,0.95);
+    border: 1px solid rgba(200,168,75,0.3); border-radius: var(--radius);
+    padding: 18px; margin-bottom: 12px; animation: fadeIn 0.2s ease;
+  }
+  .signout-confirm.visible { display: block; }
+  .signout-confirm p { font-size: 15px; color: rgba(245,240,232,0.8); font-style: italic; margin-bottom: 13px; line-height: 1.5; }
+  .confirm-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .btn-confirm-yes { padding: 10px; border-radius: 8px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; cursor: pointer; background: rgba(180,80,80,0.3); border: 1px solid rgba(200,100,100,0.4); color: rgba(240,180,180,0.9); }
+  .btn-confirm-no  { padding: 10px; border-radius: 8px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; cursor: pointer; background: transparent; border: 1px solid rgba(200,168,75,0.25); color: rgba(200,168,75,0.7); }
+
+  /* LOCAL HISTORY */
+  .history-section { margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .history-title   { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.2em; color: rgba(200,168,75,0.5); text-transform: uppercase; margin-bottom: 10px; }
+  .history-item    { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; }
+  .history-date    { color: rgba(245,240,232,0.4); font-style: italic; font-size: 12px; }
+  .history-times   { color: rgba(245,240,232,0.7); letter-spacing: 0.04em; font-family: 'Cinzel', serif; font-size: 11px; }
+  .history-duration { color: rgba(122,170,106,0.7); font-size: 12px; }
+  .no-sessions     { text-align: center; padding: 16px 0; font-size: 13px; color: rgba(245,240,232,0.28); font-style: italic; }
+
+  .divider { height: 1px; background: rgba(255,255,255,0.05); margin: 18px 0; }
+  .link-btn { background: none; border: none; cursor: pointer; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.14em; color: rgba(200,168,75,0.45); text-transform: uppercase; padding: 7px 0; width: 100%; text-align: center; margin-top: 2px; }
+  .link-btn:hover { color: rgba(200,168,75,0.75); }
+
+  /* REGISTER */
+  .screen-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 400; color: var(--gold); margin-bottom: 5px; }
+  .screen-sub   { font-size: 14px; color: rgba(245,240,232,0.5); font-style: italic; margin-bottom: 24px; line-height: 1.5; }
+  .form-group   { margin-bottom: 16px; }
+  label { display: block; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(200,168,75,0.7); text-transform: uppercase; margin-bottom: 7px; }
+  input[type="text"], input[type="email"], input[type="tel"] {
+    width: 100%; background: rgba(45,74,45,0.25); border: 1px solid rgba(200,168,75,0.2);
+    border-radius: 8px; padding: 12px 15px; font-family: 'Crimson Pro', serif;
+    font-size: 16px; color: var(--cream); outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  input:focus { border-color: rgba(200,168,75,0.55); background: rgba(45,74,45,0.4); }
+  input::placeholder { color: rgba(245,240,232,0.22); }
+  .field-hint { font-size: 11px; color: rgba(245,240,232,0.3); font-style: italic; margin-top: 4px; }
+
+  /* ── ADMIN SCREEN ── */
+  .admin-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .back-btn { background: none; border: 1px solid rgba(200,168,75,0.25); border-radius: 8px; padding: 7px 13px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.1em; color: rgba(200,168,75,0.7); cursor: pointer; white-space: nowrap; }
+  .back-btn:hover { border-color: rgba(200,168,75,0.5); color: var(--gold); }
+  .admin-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold); }
+
+  /* Present now card */
+  .present-card {
+    background: rgba(45,74,45,0.3); border: 1px solid rgba(122,170,106,0.2);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 20px;
+  }
+  .present-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .present-card-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(122,170,106,0.7); text-transform: uppercase; }
+  .present-count { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 600; color: var(--sage); line-height: 1; }
+  .present-count-sub { font-size: 11px; color: rgba(245,240,232,0.35); font-style: italic; }
+  .present-item { display: flex; align-items: center; gap: 11px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .present-item:last-child { border-bottom: none; }
+  .present-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.3); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 11px; color: var(--sage); flex-shrink: 0; }
+  .present-name { font-size: 14px; color: var(--cream); }
+  .present-meta { font-size: 11px; color: rgba(245,240,232,0.4); font-style: italic; }
+
+  /* Log table */
+  .log-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .log-section-label  { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(200,168,75,0.5); text-transform: uppercase; }
+  .export-btn { background: transparent; border: 1px solid rgba(200,168,75,0.25); border-radius: 6px; padding: 6px 12px; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.1em; color: rgba(200,168,75,0.65); cursor: pointer; text-transform: uppercase; }
+  .export-btn:hover { border-color: rgba(200,168,75,0.5); color: var(--gold); }
+
+  .log-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { background: rgba(45,74,45,0.5); padding: 10px 10px; text-align: left; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.14em; color: rgba(200,168,75,0.6); text-transform: uppercase; white-space: nowrap; font-weight: 400; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(45,74,45,0.2); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 10px 10px; vertical-align: middle; color: rgba(245,240,232,0.75); }
+  .log-name { font-weight: 500; color: var(--cream); font-size: 13px; }
+  .log-meta { font-size: 11px; color: rgba(245,240,232,0.35); font-style: italic; }
+  .log-dur  { font-size: 11px; color: rgba(122,170,106,0.6); margin-top: 2px; }
+  .log-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .badge-in   { background: rgba(74,124,74,0.25); border: 1px solid rgba(122,170,106,0.3); color: var(--sage); }
+  .badge-done { background: rgba(107,78,53,0.15); border: 1px solid rgba(107,78,53,0.25); color: rgba(245,240,232,0.4); }
+  .log-loading { text-align: center; padding: 24px; color: rgba(245,240,232,0.3); font-style: italic; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--moss); border: 1px solid rgba(200,168,75,0.4);
+    border-radius: 999px; padding: 11px 22px;
+    font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.08em;
+    color: var(--cream); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 100; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="target-icon">
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="23" stroke="#c8a84b" stroke-width="1" opacity="0.4"/>
+        <circle cx="24" cy="24" r="16" stroke="#c8a84b" stroke-width="1" opacity="0.55"/>
+        <circle cx="24" cy="24" r="9"  stroke="#c8a84b" stroke-width="1" opacity="0.75"/>
+        <circle cx="24" cy="24" r="3.5" fill="#c8a84b" opacity="0.95"/>
+        <line x1="36" y1="12" x2="26.2" y2="21.8" stroke="#c8a84b" stroke-width="1.5" stroke-linecap="round"/>
+        <polygon points="24,24 27.5,13 35,9" fill="#c8a84b" opacity="0.85"/>
+      </svg>
+    </div>
+    <div class="club-name">Archery Club</div>
+    <div class="club-tagline">Member Sign In</div>
+    <div class="sync-status" id="syncStatus"></div>
+  </header>
+
+  <!-- ── WELCOME SCREEN ── -->
+  <div class="screen active" id="screenWelcome">
+    <div style="height:18px"></div>
+    <div class="member-bar">
+      <div class="member-avatar" id="memberAvatar">–</div>
+      <div class="member-info">
+        <div class="member-name" id="memberName">Welcome</div>
+        <div class="member-id"   id="memberId">Not registered</div>
+      </div>
+    </div>
+
+    <div class="status-badge signed-out" id="statusBadge">
+      <span class="status-dot"></span>
+      <span id="statusText">Not signed in</span>
+    </div>
+
+    <div class="time-boxes">
+      <div class="time-box" id="boxIn">
+        <span class="time-box-label">Time In</span>
+        <span class="time-box-arrow">→</span>
+        <div class="time-display empty" id="timeInDisplay">—</div>
+        <div class="time-date" id="dateInDisplay"></div>
+      </div>
+      <div class="time-box" id="boxOut">
+        <span class="time-box-label">Time Out</span>
+        <span class="time-box-arrow">←</span>
+        <div class="time-display empty" id="timeOutDisplay">—</div>
+        <div class="time-date" id="dateOutDisplay"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary"    id="btnSignIn"  onclick="handleSignIn()">Sign In</button>
+
+    <div class="signout-confirm" id="signoutConfirm">
+      <p>Confirm you are leaving the club premises?</p>
+      <div class="confirm-buttons">
+        <button class="btn-confirm-yes" onclick="confirmSignOut()">Confirm Sign Out</button>
+        <button class="btn-confirm-no"  onclick="cancelSignOut()">Cancel</button>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" id="btnSignOut" style="display:none" onclick="requestSignOut()">Sign Out</button>
+    <button class="btn btn-admin" onclick="openAdmin()">Admin Log</button>
+
+    <div class="history-section" id="historySection">
+      <div class="history-title">My Recent Sessions</div>
+      <div id="historyList"><div class="no-sessions">No sessions recorded yet</div></div>
+    </div>
+
+    <div class="divider"></div>
+    <button class="link-btn" onclick="showScreen('screenRegister', true)">Edit my details</button>
+    <button class="btn btn-danger" onclick="confirmClearData()">Clear my data &amp; start over</button>
+  </div>
+
+  <!-- ── REGISTER SCREEN ── -->
+  <div class="screen" id="screenRegister">
+    <div style="height:18px"></div>
+    <div class="screen-title" id="regTitle">Join the Club</div>
+    <div class="screen-sub" id="regSub">Register your details to use the sign-in system. Your information is stored only on this device.</div>
+
+    <div class="form-group">
+      <label for="inputName">Full Name</label>
+      <input type="text"  id="inputName"  placeholder="Jane Archer" autocomplete="name" autocorrect="off">
+    </div>
+    <div class="form-group">
+      <label for="inputEmail">Email Address</label>
+      <input type="email" id="inputEmail" placeholder="jane@example.com" autocomplete="email" autocorrect="off" autocapitalize="none">
+    </div>
+    <div class="form-group">
+      <label for="inputPhone">Phone Number</label>
+      <input type="tel"   id="inputPhone" placeholder="+44 7700 900123" autocomplete="tel">
+    </div>
+    <div class="form-group">
+      <label for="inputNFAS">NFAS Membership Number</label>
+      <input type="text"  id="inputNFAS"  placeholder="NFAS-XXXXXX" autocorrect="off" autocapitalize="characters">
+      <div class="field-hint">National Field Archery Society number</div>
+    </div>
+
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" onclick="saveRegistration()">Save &amp; Continue</button>
+    <button class="btn btn-secondary" id="btnCancelReg" style="display:none;margin-top:10px" onclick="showScreen('screenWelcome')">Cancel</button>
+  </div>
+
+  <!-- ── ADMIN SCREEN ── -->
+  <div class="screen" id="screenAdmin">
+    <div style="height:18px"></div>
+    <div class="admin-header">
+      <button class="back-btn" onclick="showScreen('screenWelcome')">← Back</button>
+      <div class="admin-title">Club Log</div>
+    </div>
+
+    <!-- Present on site -->
+    <div class="present-card">
+      <div class="present-card-header">
+        <div>
+          <div class="present-card-label">Currently On Site</div>
+          <div class="present-count-sub">signed in right now</div>
+        </div>
+        <div class="present-count" id="adminCounter">–</div>
+      </div>
+      <div id="presentList"><div class="no-sessions">Loading…</div></div>
+    </div>
+
+    <!-- Full log -->
+    <div class="log-section-header">
+      <div class="log-section-label">Session Log</div>
+      <button class="export-btn" onclick="exportCSV()">Export CSV</button>
+    </div>
+
+    <div class="log-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Date</th>
+            <th>In</th>
+            <th>Out</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="adminTbody">
+          <tr><td colspan="5" class="log-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="height:20px"></div>
+    <button class="btn btn-secondary" onclick="loadAdminLog()">Refresh</button>
+    <div style="height:30px"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// PWA manifest
+(function(){
+  const m = {name:'Archery Club Sign In',short_name:'Archery',start_url:'.',display:'standalone',background_color:'#1a2e1a',theme_color:'#1a2e1a',icons:[{src:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" fill="%231a2e1a"/><circle cx="96" cy="96" r="80" stroke="%23c8a84b" stroke-width="3" fill="none"/><circle cx="96" cy="96" r="50" stroke="%23c8a84b" stroke-width="2.5" fill="none"/><circle cx="96" cy="96" r="20" stroke="%23c8a84b" stroke-width="2" fill="none"/><circle cx="96" cy="96" r="7" fill="%23c8a84b"/></svg>',sizes:'192x192',type:'image/svg+xml'}]};
+  const b=new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+  const l=document.createElement('link');l.rel='manifest';l.href=URL.createObjectURL(b);document.head.appendChild(l);
+})();
+// Service worker
+if('serviceWorker' in navigator){
+  const sw=`const C='archery-v2';self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>new Response('Offline',{status:503})))));`;
+  const b=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(b)).catch(()=>{});
+}
+</script>
+</body>
+</html>
