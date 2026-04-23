@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a2e1a">
+<title>Blaidd Field Archers — Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --forest: #1a2e1a; --moss: #2d4a2d; --leaf: #4a7c4a; --sage: #7aaa6a;
+    --cream: #f5f0e8; --gold: #c8a84b; --gold-dim: rgba(200,168,75,0.4);
+    --surface: rgba(45,74,45,0.35); --border: rgba(200,168,75,0.15);
+    --radius: 12px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background:
+      radial-gradient(ellipse at 10% 0%, rgba(74,124,74,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 100%, rgba(45,74,45,0.18) 0%, transparent 55%),
+      #1a2e1a;
+    color: var(--cream);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px);
+  }
+
+  /* ── PIN SCREEN ── */
+  #pinScreen {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: #1a2e1a;
+    flex-direction: column; gap: 24px; padding: 32px;
+  }
+
+  .pin-logo { text-align: center; }
+  .pin-logo svg { width: 64px; height: 64px; margin-bottom: 14px; }
+  .pin-club  { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 600; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; }
+  .pin-sub   { font-size: 14px; color: rgba(245,240,232,0.45); font-style: italic; margin-top: 4px; }
+
+  .pin-card {
+    background: rgba(45,74,45,0.4); border: 1px solid var(--gold-dim);
+    border-radius: 16px; padding: 28px 32px; width: 100%; max-width: 360px;
+    text-align: center;
+  }
+  .pin-label { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.2em; color: rgba(200,168,75,0.6); text-transform: uppercase; margin-bottom: 16px; }
+  .pin-input {
+    width: 100%; background: rgba(26,46,26,0.6); border: 1px solid var(--gold-dim);
+    border-radius: 8px; padding: 14px 18px; font-family: 'Cinzel', serif;
+    font-size: 22px; color: var(--cream); outline: none; text-align: center;
+    letter-spacing: 0.3em; -webkit-appearance: none;
+  }
+  .pin-input:focus { border-color: rgba(200,168,75,0.6); }
+  .pin-btn {
+    width: 100%; margin-top: 14px; padding: 14px; border-radius: 8px;
+    font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; border: none;
+    background: linear-gradient(135deg, #4a7c4a, #2d5a2d);
+    color: var(--cream); border: 1px solid rgba(122,170,106,0.4);
+    transition: all 0.2s;
+  }
+  .pin-btn:hover { background: linear-gradient(135deg, #5a8c5a, #3d6a3d); }
+  .pin-btn:active { transform: scale(0.98); }
+  .pin-error { font-size: 13px; color: rgba(220,120,120,0.8); font-style: italic; margin-top: 10px; min-height: 20px; }
+
+  /* ── MAIN LAYOUT ── */
+  #dashboard { display: none; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* HEADER */
+  .dash-header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(26,46,26,0.92);
+    backdrop-filter: blur(8px);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-logo svg { width: 36px; height: 36px; }
+  .header-title { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 600; color: var(--gold); letter-spacing: 0.1em; text-transform: uppercase; }
+  .header-sub   { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sage); box-shadow: 0 0 8px rgba(122,170,106,0.6); animation: pulse 2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .live-label { font-size: 12px; color: rgba(122,170,106,0.7); font-style: italic; }
+  .refresh-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px; padding: 7px 14px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.1em; color: rgba(200,168,75,0.6); cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
+  .refresh-btn:hover { border-color: rgba(200,168,75,0.5); color: var(--gold); }
+  .last-updated { font-size: 11px; color: rgba(245,240,232,0.3); font-style: italic; }
+
+  /* CONTENT */
+  .dash-content { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px;
+    position: relative; overflow: hidden; transition: border-color 0.2s;
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0.5; }
+  .stat-card.highlight { border-color: rgba(122,170,106,0.35); }
+  .stat-card.highlight::before { background: linear-gradient(90deg, transparent, var(--sage), transparent); opacity: 0.7; }
+  .stat-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.2em; color: rgba(200,168,75,0.55); text-transform: uppercase; margin-bottom: 10px; }
+  .stat-value { font-family: 'Cinzel', serif; font-size: 32px; font-weight: 600; color: var(--cream); line-height: 1; }
+  .stat-value.green { color: var(--sage); }
+  .stat-sub   { font-size: 12px; color: rgba(245,240,232,0.35); font-style: italic; margin-top: 6px; }
+
+  /* SECTION */
+  .section { margin-bottom: 32px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .section-title  { font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.18em; color: rgba(200,168,75,0.6); text-transform: uppercase; }
+
+  /* PRESENT MEMBERS */
+  .present-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .present-card {
+    background: rgba(45,74,45,0.3); border: 1px solid rgba(122,170,106,0.2);
+    border-radius: var(--radius); padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .present-card:hover { border-color: rgba(122,170,106,0.4); background: rgba(45,74,45,0.45); }
+  .present-avatar { width: 44px; height: 44px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.35); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 15px; font-weight: 600; color: var(--sage); flex-shrink: 0; }
+  .present-name { font-size: 15px; font-weight: 500; color: var(--cream); }
+  .present-nfas { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; }
+  .present-since { font-size: 11px; color: rgba(122,170,106,0.65); margin-top: 3px; }
+  .present-duration { font-family: 'Cinzel', serif; font-size: 13px; color: var(--sage); margin-left: auto; flex-shrink: 0; }
+
+  .nobody-here { text-align: center; padding: 36px; color: rgba(245,240,232,0.28); font-style: italic; font-size: 15px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .filter-input {
+    background: rgba(45,74,45,0.3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; font-family: 'Crimson Pro', serif;
+    font-size: 14px; color: var(--cream); outline: none; transition: border-color 0.2s;
+    min-width: 180px;
+  }
+  .filter-input:focus { border-color: var(--gold-dim); }
+  .filter-input::placeholder { color: rgba(245,240,232,0.25); }
+  .filter-select {
+    background: rgba(45,74,45,0.3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; font-family: 'Crimson Pro', serif;
+    font-size: 14px; color: var(--cream); outline: none; cursor: pointer;
+    -webkit-appearance: none; appearance: none;
+  }
+  .filter-select option { background: #2d4a2d; color: var(--cream); }
+  .export-btn { background: transparent; border: 1px solid var(--gold-dim); border-radius: 8px; padding: 9px 18px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.12em; color: rgba(200,168,75,0.7); cursor: pointer; text-transform: uppercase; transition: all 0.2s; margin-left: auto; }
+  .export-btn:hover { border-color: rgba(200,168,75,0.55); color: var(--gold); }
+
+  /* SESSION TABLE */
+  .table-wrap { border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.07); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: rgba(45,74,45,0.55); padding: 12px 16px; text-align: left;
+    font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.16em;
+    color: rgba(200,168,75,0.6); text-transform: uppercase; font-weight: 400;
+    border-bottom: 1px solid rgba(255,255,255,0.07); white-space: nowrap;
+    cursor: pointer; user-select: none;
+  }
+  thead th:hover { color: var(--gold); }
+  thead th .sort-arrow { opacity: 0.4; margin-left: 4px; }
+  thead th.sorted .sort-arrow { opacity: 1; color: var(--gold); }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(45,74,45,0.25); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 13px 16px; vertical-align: middle; font-size: 14px; color: rgba(245,240,232,0.8); }
+  .td-name  { font-size: 15px; font-weight: 500; color: var(--cream); }
+  .td-nfas  { font-size: 12px; color: rgba(245,240,232,0.35); font-style: italic; margin-top: 2px; }
+  .td-time  { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.04em; }
+  .td-dur   { font-size: 13px; color: rgba(122,170,106,0.7); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .badge-in   { background: rgba(74,124,74,0.2); border: 1px solid rgba(122,170,106,0.35); color: var(--sage); }
+  .badge-done { background: rgba(107,78,53,0.15); border: 1px solid rgba(107,78,53,0.25); color: rgba(245,240,232,0.45); }
+  .badge-dot  { width: 5px; height: 5px; border-radius: 50%; }
+  .badge-in .badge-dot { background: var(--sage); }
+  .badge-done .badge-dot { background: rgba(245,240,232,0.3); }
+
+  .table-empty { text-align: center; padding: 36px; color: rgba(245,240,232,0.28); font-style: italic; background: var(--surface); }
+  .table-loading { text-align: center; padding: 36px; color: rgba(245,240,232,0.28); font-style: italic; }
+
+  /* PAGINATION */
+  .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+  .page-info  { font-size: 13px; color: rgba(245,240,232,0.35); font-style: italic; }
+  .page-btns  { display: flex; gap: 8px; }
+  .page-btn { background: transparent; border: 1px solid var(--border); border-radius: 6px; padding: 7px 14px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.1em; color: rgba(200,168,75,0.6); cursor: pointer; text-transform: uppercase; transition: all 0.2s; }
+  .page-btn:hover:not(:disabled) { border-color: var(--gold-dim); color: var(--gold); }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--moss); border: 1px solid var(--gold-dim); border-radius: 999px; padding: 11px 22px; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.08em; color: var(--cream); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 200; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .dash-header { padding: 14px 18px; }
+    .dash-content { padding: 18px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .header-right .last-updated { display: none; }
+    td:nth-child(4), th:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div id="pinScreen">
+  <div class="pin-logo">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="30" stroke="#c8a84b" stroke-width="1" opacity="0.4"/>
+      <circle cx="32" cy="32" r="21" stroke="#c8a84b" stroke-width="1" opacity="0.55"/>
+      <circle cx="32" cy="32" r="12" stroke="#c8a84b" stroke-width="1" opacity="0.75"/>
+      <circle cx="32" cy="32" r="4.5" fill="#c8a84b" opacity="0.95"/>
+      <line x1="48" y1="16" x2="35" y2="29" stroke="#c8a84b" stroke-width="1.8" stroke-linecap="round"/>
+      <polygon points="32,32 36.5,17 46,12" fill="#c8a84b" opacity="0.85"/>
+    </svg>
+    <div class="pin-club">Blaidd Field Archers</div>
+    <div class="pin-sub">Admin Dashboard</div>
+  </div>
+  <div class="pin-card">
+    <div class="pin-label">Enter Admin PIN</div>
+    <input class="pin-input" type="password" id="pinInput" maxlength="10" placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter') checkPin()">
+    <button class="pin-btn" onclick="checkPin()">Enter</button>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <header class="dash-header">
+    <div class="header-left">
+      <div class="header-logo">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="17" stroke="#c8a84b" stroke-width="1" opacity="0.4"/>
+          <circle cx="18" cy="18" r="11" stroke="#c8a84b" stroke-width="1" opacity="0.6"/>
+          <circle cx="18" cy="18" r="5"  stroke="#c8a84b" stroke-width="1" opacity="0.8"/>
+          <circle cx="18" cy="18" r="2"  fill="#c8a84b"/>
+          <line x1="27" y1="9" x2="20" y2="16" stroke="#c8a84b" stroke-width="1.4" stroke-linecap="round"/>
+          <polygon points="18,18 21,9 27,6" fill="#c8a84b" opacity="0.85"/>
+        </svg>
+      </div>
+      <div>
+        <div class="header-title">Blaidd Field Archers</div>
+        <div class="header-sub">Session Monitor</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-dot"></div>
+      <div class="live-label">Live</div>
+      <div class="last-updated" id="lastUpdated"></div>
+      <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="dash-content">
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card highlight">
+        <div class="stat-label">On Site Now</div>
+        <div class="stat-value green" id="statOnSite">—</div>
+        <div class="stat-sub">members present</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Today's Visits</div>
+        <div class="stat-value" id="statToday">—</div>
+        <div class="stat-sub">sign-ins today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Sessions</div>
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-sub">all time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg. Session</div>
+        <div class="stat-value" id="statAvg">—</div>
+        <div class="stat-sub">minutes on site</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Members</div>
+        <div class="stat-value" id="statMembers">—</div>
+        <div class="stat-sub">registered</div>
+      </div>
+    </div>
+
+    <!-- WHO'S ON SITE -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Currently On Site</div>
+      </div>
+      <div class="present-grid" id="presentGrid">
+        <div class="nobody-here">Loading…</div>
+      </div>
+    </div>
+
+    <!-- SESSION LOG -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Session Log</div>
+      </div>
+      <div class="filters" style="margin-bottom:14px">
+        <input class="filter-input" id="filterName"   type="text"    placeholder="Search by name or NFAS…" oninput="applyFilters()">
+        <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+          <option value="">All sessions</option>
+          <option value="in">On site</option>
+          <option value="complete">Complete</option>
+        </select>
+        <input class="filter-input" id="filterDate" type="date" onchange="applyFilters()" style="min-width:unset;width:150px">
+        <button class="export-btn" onclick="exportCSV()">↓ Export CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('name')" title="Sort by name">Member <span class="sort-arrow" id="sort-name"></span></th>
+              <th onclick="sortBy('date')" title="Sort by date">Date <span class="sort-arrow" id="sort-date">↓</span></th>
+              <th onclick="sortBy('timeIn')" title="Sort by time in">Time In <span class="sort-arrow" id="sort-timeIn"></span></th>
+              <th onclick="sortBy('timeOut')" title="Sort by time out">Time Out <span class="sort-arrow" id="sort-timeOut"></span></th>
+              <th onclick="sortBy('duration')" title="Sort by duration">Duration <span class="sort-arrow" id="sort-duration"></span></th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="sessionTbody">
+            <tr><td colspan="6" class="table-loading">Loading sessions…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="page-info" id="pageInfo"></div>
+        <div class="page-btns">
+          <button class="page-btn" id="btnPrev" onclick="changePage(-1)" disabled>← Prev</button>
+          <button class="page-btn" id="btnNext" onclick="changePage(1)"  disabled>Next →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  PASTE YOUR FIREBASE CONFIG HERE (same as index.html)
+// ═══════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyD3wP0IZXyMylktdjtoS7Eo_sCjSXT7WvA",
+  authDomain:        "blaidd-lone-archer.firebaseapp.com",
+  projectId:         "blaidd-lone-archer",
+  storageBucket:     "blaidd-lone-archer.firebasestorage.app",
+  messagingSenderId: "1037274086483",
+  appId:             "1:1037274086483:web:b2cf8448a669d5a01c9aa6"
+};
+
+const ADMIN_PIN = '1066'; // Change this to match your app PIN
+// ═══════════════════════════════════════════════════
+
+let db, fbCol, fbGet, fbQ, fbOrderBy, fbLimit, fbWhere;
+let allSessions  = [];
+let filtered     = [];
+let currentPage  = 1;
+const PAGE_SIZE  = 25;
+let sortKey      = 'date';
+let sortDir      = -1; // -1 = desc, 1 = asc
+let autoRefresh;
+
+// ── PIN ──────────────────────────────────────────
+function checkPin() {
+  const val = document.getElementById('pinInput').value;
+  if (val === ADMIN_PIN) {
+    document.getElementById('pinScreen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    initFirebase();
+  } else {
+    document.getElementById('pinError').textContent = 'Incorrect PIN — try again';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+// ── FIREBASE ─────────────────────────────────────
+async function initFirebase() {
+  try {
+    const [am, fm] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js')
+    ]);
+    const app = am.initializeApp(FIREBASE_CONFIG);
+    db        = fm.getFirestore(app);
+    fbCol     = fm.collection;
+    fbGet     = fm.getDocs;
+    fbQ       = fm.query;
+    fbOrderBy = fm.orderBy;
+    fbLimit   = fm.limit;
+    fbWhere   = fm.where;
+    loadAll();
+    // Auto-refresh every 60 seconds
+    autoRefresh = setInterval(loadAll, 60000);
+  } catch(e) {
+    console.error('Firebase failed:', e);
+    showToast('Firebase connection failed');
+  }
+}
+
+// ── LOAD DATA ────────────────────────────────────
+async function loadAll() {
+  try {
+    await Promise.all([loadSessions(), loadMembers()]);
+    document.getElementById('lastUpdated').textContent = 'Updated ' + fmtTime(new Date());
+  } catch(e) {
+    console.error(e);
+    showToast('Failed to load data');
+  }
+}
+
+async function loadSessions() {
+  const snap = await fbGet(fbQ(fbCol(db, 'sessions'), fbOrderBy('timeInTs', 'desc'), fbLimit(500)));
+  allSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  computeStats();
+  renderPresent();
+  applyFilters();
+}
+
+async function loadMembers() {
+  const snap = await fbGet(fbCol(db, 'members'));
+  document.getElementById('statMembers').textContent = snap.size;
+}
+
+// ── STATS ─────────────────────────────────────────
+function computeStats() {
+  const now   = new Date();
+  const today = now.toDateString();
+
+  const onSite    = allSessions.filter(s => s.status === 'in');
+  const todayAll  = allSessions.filter(s => new Date(s.timeIn).toDateString() === today);
+  const complete  = allSessions.filter(s => s.status === 'complete' && s.durationMinutes);
+  const avgDur    = complete.length ? Math.round(complete.reduce((a,s) => a + s.durationMinutes, 0) / complete.length) : 0;
+
+  document.getElementById('statOnSite').textContent  = onSite.length;
+  document.getElementById('statToday').textContent   = todayAll.length;
+  document.getElementById('statTotal').textContent   = allSessions.length;
+  document.getElementById('statAvg').textContent     = avgDur || '—';
+}
+
+// ── PRESENT MEMBERS ───────────────────────────────
+function renderPresent() {
+  const grid    = document.getElementById('presentGrid');
+  const present = allSessions.filter(s => s.status === 'in');
+
+  if (!present.length) {
+    grid.innerHTML = '<div class="nobody-here">No members currently on site</div>';
+    return;
+  }
+
+  const now = new Date();
+  grid.innerHTML = present.map(s => {
+    const tin      = new Date(s.timeIn);
+    const elapsed  = Math.round((now - tin) / 60000);
+    const elStr    = elapsed < 60 ? elapsed + 'm' : Math.floor(elapsed/60) + 'h ' + (elapsed%60) + 'm';
+    const initials = s.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="present-card">
+      <div class="present-avatar">${esc(initials)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="present-name">${esc(s.name)}</div>
+        <div class="present-nfas">${esc(s.nfas)}</div>
+        <div class="present-since">since ${fmtTime(tin)}</div>
+      </div>
+      <div class="present-duration">${elStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── FILTERS & SORT ────────────────────────────────
+function applyFilters() {
+  const name   = document.getElementById('filterName').value.toLowerCase();
+  const status = document.getElementById('filterStatus').value;
+  const date   = document.getElementById('filterDate').value;
+
+  filtered = allSessions.filter(s => {
+    if (name   && !s.name.toLowerCase().includes(name) && !s.nfas.toLowerCase().includes(name)) return false;
+    if (status && s.status !== status) return false;
+    if (date) {
+      const d = new Date(s.timeIn).toISOString().slice(0,10);
+      if (d !== date) return false;
+    }
+    return true;
+  });
+
+  sortFiltered();
+  currentPage = 1;
+  renderTable();
+}
+
+function sortBy(key) {
+  if (sortKey === key) { sortDir *= -1; }
+  else { sortKey = key; sortDir = key === 'date' || key === 'timeIn' ? -1 : 1; }
+  document.querySelectorAll('.sort-arrow').forEach(el => el.textContent = '');
+  document.getElementById('sort-' + key).textContent = sortDir === -1 ? '↓' : '↑';
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
+  sortFiltered();
+  renderTable();
+}
+
+function sortFiltered() {
+  filtered.sort((a, b) => {
+    let av, bv;
+    if (sortKey === 'name')     { av = a.name||''; bv = b.name||''; return sortDir * av.localeCompare(bv); }
+    if (sortKey === 'date' || sortKey === 'timeIn') { av = new Date(a.timeIn); bv = new Date(b.timeIn); }
+    else if (sortKey === 'timeOut')  { av = a.timeOut ? new Date(a.timeOut) : 0; bv = b.timeOut ? new Date(b.timeOut) : 0; }
+    else if (sortKey === 'duration') { av = a.durationMinutes||0; bv = b.durationMinutes||0; }
+    else return 0;
+    return sortDir * (av > bv ? 1 : av < bv ? -1 : 0);
+  });
+}
+
+// ── TABLE RENDER ──────────────────────────────────
+function renderTable() {
+  const tbody  = document.getElementById('sessionTbody');
+  const total  = filtered.length;
+  const start  = (currentPage - 1) * PAGE_SIZE;
+  const end    = Math.min(start + PAGE_SIZE, total);
+  const page   = filtered.slice(start, end);
+
+  document.getElementById('pageInfo').textContent =
+    total === 0 ? 'No sessions found' : `Showing ${start+1}–${end} of ${total}`;
+  document.getElementById('btnPrev').disabled = currentPage <= 1;
+  document.getElementById('btnNext').disabled = end >= total;
+
+  if (!page.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="table-empty">No sessions match your filters</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = page.map(s => {
+    const tin    = new Date(s.timeIn);
+    const tout   = s.timeOut ? new Date(s.timeOut) : null;
+    const dur    = s.durationMinutes ? (s.durationMinutes < 60 ? s.durationMinutes + 'm' : Math.floor(s.durationMinutes/60) + 'h ' + (s.durationMinutes%60) + 'm') : '—';
+    const badge  = s.status === 'in'
+      ? `<span class="badge badge-in"><span class="badge-dot"></span>On site</span>`
+      : `<span class="badge badge-done"><span class="badge-dot"></span>Complete</span>`;
+    return `<tr>
+      <td><div class="td-name">${esc(s.name)}</div><div class="td-nfas">${esc(s.nfas)}</div></td>
+      <td>${fmtShort(tin)}</td>
+      <td class="td-time">${fmtTime(tin)}</td>
+      <td class="td-time">${tout ? fmtTime(tout) : '—'}</td>
+      <td class="td-dur">${dur}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+  window.scrollTo({ top: document.querySelector('.section:last-child').offsetTop - 80, behavior: 'smooth' });
+}
+
+// ── EXPORT ────────────────────────────────────────
+function exportCSV() {
+  if (!filtered.length) { showToast('No data to export'); return; }
+  const rows = [['Name','NFAS','Email','Phone','Date','Time In','Time Out','Duration (min)','Status']];
+  filtered.forEach(s => {
+    const tin  = new Date(s.timeIn);
+    const tout = s.timeOut ? new Date(s.timeOut) : null;
+    rows.push([s.name, s.nfas, s.email||'', s.phone||'', fmtShort(tin), fmtTime(tin),
+               tout ? fmtTime(tout) : '', s.durationMinutes||'', s.status]);
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a   = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
+    download: `blaidd-sessions-${new Date().toISOString().slice(0,10)}.csv`
+  });
+  a.click();
+  showToast('CSV downloaded');
+}
+
+// ── UTILITIES ─────────────────────────────────────
+function fmtTime(d)  { return d.toLocaleTimeString('en-GB',  { hour:'2-digit', minute:'2-digit' }); }
+function fmtShort(d) { return d.toLocaleDateString('en-GB',  { day:'numeric', month:'short', year:'2-digit' }); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Allow Enter key on PIN screen
+document.getElementById('pinInput').focus();
+</script>
+</body>
+</html>
