@@ -8,9 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Archery Club">
 <title>Archery Club Sign In</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -18,7 +16,7 @@
     --cream: #f5f0e8; --gold: #c8a84b; --radius: 12px;
   }
   html, body {
-    height: 100%; font-family: 'Crimson Pro', Georgia, serif;
+    height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: var(--forest); color: var(--cream); overflow: hidden;
   }
   body {
@@ -43,8 +41,8 @@
     padding: 24px 24px 18px; text-align: center;
     border-bottom: 1px solid rgba(200,168,75,0.25); flex-shrink: 0;
   }
-  .target-icon { width: 48px; height: 48px; margin: 0 auto 10px; }
-  .club-name { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; }
+  .target-icon { width: 48px; height: 48px; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; }
+  .club-name { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 600; color: var(--gold); letter-spacing: 0.02em; text-transform: uppercase; }
   .club-tagline { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; margin-top: 3px; }
   .sync-status  { font-size: 11px; margin-top: 6px; letter-spacing: 0.03em; }
 
@@ -53,7 +51,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
   .member-bar { background: rgba(45,74,45,0.3); border: 1px solid rgba(200,168,75,0.15); border-radius: 10px; padding: 13px 15px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
-  .member-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.35); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; color: var(--sage); flex-shrink: 0; }
+  .member-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.35); display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 600; color: var(--sage); flex-shrink: 0; }
   .member-info { flex: 1; min-width: 0; }
   .member-name { font-size: 15px; font-weight: 500; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .member-id   { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; }
@@ -70,13 +68,13 @@
   .time-box.has-time { border-color: rgba(200,168,75,0.5); background: rgba(45,74,45,0.6); }
   .time-box::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0; transition: opacity 0.3s; }
   .time-box.has-time::before { opacity: 1; }
-  .time-box-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; display: block; }
+  .time-box-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.02em; color: var(--gold); text-transform: uppercase; margin-bottom: 8px; display: block; }
   .time-box-arrow { font-size: 20px; margin-bottom: 6px; display: block; opacity: 0.7; }
-  .time-display { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; color: var(--cream); letter-spacing: 0.06em; min-height: 26px; display: flex; align-items: center; justify-content: center; }
-  .time-display.empty { font-family: 'Crimson Pro', serif; font-size: 13px; color: rgba(245,240,232,0.3); font-style: italic; font-weight: 300; }
+  .time-display { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 600; color: var(--cream); letter-spacing: 0.01em; min-height: 26px; display: flex; align-items: center; justify-content: center; }
+  .time-display.empty { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; color: rgba(245,240,232,0.3); font-style: italic; font-weight: 300; }
   .time-date { font-size: 11px; color: rgba(245,240,232,0.4); margin-top: 4px; font-style: italic; min-height: 16px; }
 
-  .btn { width: 100%; padding: 15px 20px; border-radius: var(--radius); font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; cursor: pointer; border: none; transition: all 0.2s ease; }
+  .btn { width: 100%; padding: 15px 20px; border-radius: var(--radius); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; cursor: pointer; border: none; transition: all 0.2s ease; }
   .btn:active { transform: scale(0.98); }
   .btn-primary   { background: linear-gradient(135deg, #4a7c4a, #2d5a2d); color: var(--cream); border: 1px solid rgba(122,170,106,0.4); margin-bottom: 11px; }
   .btn-primary:hover { background: linear-gradient(135deg, #5a8c5a, #3d6a3d); }
@@ -90,51 +88,51 @@
   .signout-confirm.visible { display: block; }
   .signout-confirm p { font-size: 15px; color: rgba(245,240,232,0.8); font-style: italic; margin-bottom: 13px; line-height: 1.5; }
   .confirm-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
-  .btn-confirm-yes { padding: 10px; border-radius: 8px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; cursor: pointer; background: rgba(180,80,80,0.3); border: 1px solid rgba(200,100,100,0.4); color: rgba(240,180,180,0.9); }
-  .btn-confirm-no  { padding: 10px; border-radius: 8px; font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; cursor: pointer; background: transparent; border: 1px solid rgba(200,168,75,0.25); color: rgba(200,168,75,0.7); }
+  .btn-confirm-yes { padding: 10px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; cursor: pointer; background: rgba(180,80,80,0.3); border: 1px solid rgba(200,100,100,0.4); color: rgba(240,180,180,0.9); }
+  .btn-confirm-no  { padding: 10px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; cursor: pointer; background: transparent; border: 1px solid rgba(200,168,75,0.25); color: rgba(200,168,75,0.7); }
 
   .history-section { margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.06); }
-  .history-title   { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.2em; color: rgba(200,168,75,0.5); text-transform: uppercase; margin-bottom: 10px; }
+  .history-title   { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.2em; color: rgba(200,168,75,0.5); text-transform: uppercase; margin-bottom: 10px; }
   .history-item    { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
   .history-date    { color: rgba(245,240,232,0.4); font-style: italic; font-size: 12px; }
-  .history-times   { color: rgba(245,240,232,0.7); letter-spacing: 0.04em; font-family: 'Cinzel', serif; font-size: 11px; }
+  .history-times   { color: rgba(245,240,232,0.7); letter-spacing: 0.02em; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; }
   .history-duration{ color: rgba(122,170,106,0.7); font-size: 12px; }
   .no-sessions     { text-align: center; padding: 16px 0; font-size: 13px; color: rgba(245,240,232,0.28); font-style: italic; }
 
   .divider  { height: 1px; background: rgba(255,255,255,0.05); margin: 18px 0; }
-  .link-btn { background: none; border: none; cursor: pointer; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.14em; color: rgba(200,168,75,0.45); text-transform: uppercase; padding: 7px 0; width: 100%; text-align: center; }
+  .link-btn { background: none; border: none; cursor: pointer; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.02em; color: rgba(200,168,75,0.45); text-transform: uppercase; padding: 7px 0; width: 100%; text-align: center; }
   .link-btn:hover { color: rgba(200,168,75,0.75); }
 
-  .screen-title { font-family: 'Cinzel', serif; font-size: 19px; font-weight: 400; color: var(--gold); margin-bottom: 5px; }
+  .screen-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 19px; font-weight: 400; color: var(--gold); margin-bottom: 5px; }
   .screen-sub   { font-size: 14px; color: rgba(245,240,232,0.5); font-style: italic; margin-bottom: 24px; line-height: 1.5; }
   .form-group   { margin-bottom: 16px; }
-  label { display: block; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(200,168,75,0.7); text-transform: uppercase; margin-bottom: 7px; }
-  input[type="text"], input[type="email"], input[type="tel"] { width: 100%; background: rgba(45,74,45,0.25); border: 1px solid rgba(200,168,75,0.2); border-radius: 8px; padding: 12px 15px; font-family: 'Crimson Pro', serif; font-size: 16px; color: var(--cream); outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  label { display: block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.02em; color: rgba(200,168,75,0.7); text-transform: uppercase; margin-bottom: 7px; }
+  input[type="text"], input[type="email"], input[type="tel"] { width: 100%; background: rgba(45,74,45,0.25); border: 1px solid rgba(200,168,75,0.2); border-radius: 8px; padding: 12px 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: var(--cream); outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
   input:focus { border-color: rgba(200,168,75,0.55); background: rgba(45,74,45,0.4); }
   input::placeholder { color: rgba(245,240,232,0.22); }
   .field-hint { font-size: 11px; color: rgba(245,240,232,0.3); font-style: italic; margin-top: 4px; }
 
   .admin-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-  .back-btn { background: none; border: 1px solid rgba(200,168,75,0.25); border-radius: 8px; padding: 7px 13px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.1em; color: rgba(200,168,75,0.7); cursor: pointer; white-space: nowrap; }
+  .back-btn { background: none; border: 1px solid rgba(200,168,75,0.25); border-radius: 8px; padding: 7px 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10px; letter-spacing: 0.1em; color: rgba(200,168,75,0.7); cursor: pointer; white-space: nowrap; }
   .back-btn:hover { border-color: rgba(200,168,75,0.5); color: var(--gold); }
-  .admin-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold); }
+  .admin-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: var(--gold); }
   .present-card { background: rgba(45,74,45,0.3); border: 1px solid rgba(122,170,106,0.2); border-radius: var(--radius); padding: 16px; margin-bottom: 20px; }
   .present-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-  .present-card-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(122,170,106,0.7); text-transform: uppercase; }
-  .present-count { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 600; color: var(--sage); line-height: 1; }
+  .present-card-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.02em; color: rgba(122,170,106,0.7); text-transform: uppercase; }
+  .present-count { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 26px; font-weight: 600; color: var(--sage); line-height: 1; }
   .present-count-sub { font-size: 11px; color: rgba(245,240,232,0.35); font-style: italic; }
   .present-item { display: flex; align-items: center; gap: 11px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
   .present-item:last-child { border-bottom: none; }
-  .present-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.3); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 11px; color: var(--sage); flex-shrink: 0; }
+  .present-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.3); display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; color: var(--sage); flex-shrink: 0; }
   .present-name { font-size: 14px; color: var(--cream); }
   .present-meta { font-size: 11px; color: rgba(245,240,232,0.4); font-style: italic; }
   .log-section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .log-section-label  { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.18em; color: rgba(200,168,75,0.5); text-transform: uppercase; }
-  .export-btn { background: transparent; border: 1px solid rgba(200,168,75,0.25); border-radius: 6px; padding: 6px 12px; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.1em; color: rgba(200,168,75,0.65); cursor: pointer; text-transform: uppercase; }
+  .log-section-label  { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.02em; color: rgba(200,168,75,0.5); text-transform: uppercase; }
+  .export-btn { background: transparent; border: 1px solid rgba(200,168,75,0.25); border-radius: 6px; padding: 6px 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.1em; color: rgba(200,168,75,0.65); cursor: pointer; text-transform: uppercase; }
   .export-btn:hover { border-color: rgba(200,168,75,0.5); color: var(--gold); }
   .log-table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  thead th { background: rgba(45,74,45,0.5); padding: 10px; text-align: left; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.14em; color: rgba(200,168,75,0.6); text-transform: uppercase; font-weight: 400; border-bottom: 1px solid rgba(255,255,255,0.07); white-space: nowrap; }
+  thead th { background: rgba(45,74,45,0.5); padding: 10px; text-align: left; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.02em; color: rgba(200,168,75,0.6); text-transform: uppercase; font-weight: 400; border-bottom: 1px solid rgba(255,255,255,0.07); white-space: nowrap; }
   tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
   tbody tr:hover { background: rgba(45,74,45,0.2); }
   tbody tr:last-child { border-bottom: none; }
@@ -142,12 +140,12 @@
   .log-name { font-weight: 500; color: var(--cream); font-size: 13px; }
   .log-meta { font-size: 11px; color: rgba(245,240,232,0.35); font-style: italic; }
   .log-dur  { font-size: 11px; color: rgba(122,170,106,0.6); margin-top: 2px; }
-  .log-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .log-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; }
   .badge-in   { background: rgba(74,124,74,0.25); border: 1px solid rgba(122,170,106,0.3); color: var(--sage); }
   .badge-done { background: rgba(107,78,53,0.15); border: 1px solid rgba(107,78,53,0.25); color: rgba(245,240,232,0.4); }
   .log-loading { text-align: center; padding: 24px; color: rgba(245,240,232,0.3); font-style: italic; }
 
-  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--moss); border: 1px solid rgba(200,168,75,0.4); border-radius: 999px; padding: 11px 22px; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.08em; color: var(--cream); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--moss); border: 1px solid rgba(200,168,75,0.4); border-radius: 999px; padding: 11px 22px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; letter-spacing: 0.02em; color: var(--cream); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   .toast.show { transform: translateX(-50%) translateY(0); }
 </style>
 </head>
@@ -155,16 +153,7 @@
 <div class="app">
 
   <header>
-    <div class="target-icon">
-      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="24" cy="24" r="23" stroke="#c8a84b" stroke-width="1" opacity="0.4"/>
-        <circle cx="24" cy="24" r="16" stroke="#c8a84b" stroke-width="1" opacity="0.55"/>
-        <circle cx="24" cy="24" r="9"  stroke="#c8a84b" stroke-width="1" opacity="0.75"/>
-        <circle cx="24" cy="24" r="3.5" fill="#c8a84b" opacity="0.95"/>
-        <line x1="36" y1="12" x2="26.2" y2="21.8" stroke="#c8a84b" stroke-width="1.5" stroke-linecap="round"/>
-        <polygon points="24,24 27.5,13 35,9" fill="#c8a84b" opacity="0.85"/>
-      </svg>
-    </div>
+    <div class="target-icon"><i class="fa-solid fa-calendar-check" style="font-size:42px;color:#c8a84b;"></i></div>
     <div class="club-name">Blaidd Field Archers</div>
     <div class="club-tagline">Member Sign In</div>
     <div class="sync-status" id="syncStatus"></div>
@@ -360,6 +349,7 @@ async function loadFirebase() {
     fbWhere    = fm.where;
     firebaseReady = true;
     setStatus('✓ Central log connected', 'rgba(122,170,106,0.7)');
+    flushQueue(); // sync any sessions recorded while offline
   } catch(e) {
     setStatus('⚠ Central log unavailable', 'rgba(200,168,75,0.55)');
     console.warn('Firebase load failed:', e);
@@ -475,13 +465,73 @@ function setTimeBox(date, timeId, dateId, boxId) {
   }
 }
 
+// ─── OFFLINE QUEUE ────────────────────────────────────────
+// Unsynced sessions are saved here and flushed when back online
+function getQueue()       { return JSON.parse(localStorage.getItem('archery_queue') || '[]'); }
+function saveQueue(q)     { localStorage.setItem('archery_queue', JSON.stringify(q)); }
+
+async function flushQueue() {
+  if (!firebaseReady) return;
+  const queue = getQueue();
+  if (!queue.length) return;
+  const remaining = [];
+  for (const item of queue) {
+    try {
+      if (item.type === 'signIn') {
+        const ref = await fbAdd(fbCol(db, 'sessions'), {
+          name: item.name, email: item.email, phone: item.phone, nfas: item.nfas,
+          timeIn: item.timeIn, timeInTs: fbTs(),
+          timeOut: item.timeOut || null, timeOutTs: item.timeOut ? fbTs() : null,
+          status: item.timeOut ? 'complete' : 'in',
+          durationMinutes: item.timeOut ? Math.round((new Date(item.timeOut) - new Date(item.timeIn)) / 60000) : null,
+          syncedOffline: true
+        });
+        // If this queued sign-in also has a sign-out paired with it, it's already included above
+        // Update the stored docId so a subsequent sign-out can reference it
+        if (!item.timeOut) {
+          activeDocId = ref.id;
+          const sess = JSON.parse(localStorage.getItem(KEYS.session) || '{}');
+          sess.docId = ref.id;
+          localStorage.setItem(KEYS.session, JSON.stringify(sess));
+        }
+      } else if (item.type === 'signOut' && item.docId) {
+        await fbUpdate(fbDoc(db, 'sessions', item.docId), {
+          timeOut: item.timeOut, timeOutTs: fbTs(),
+          status: 'complete',
+          durationMinutes: Math.round((new Date(item.timeOut) - new Date(item.timeIn)) / 60000)
+        });
+      }
+    } catch(e) {
+      console.warn('Queue flush failed for item, will retry:', e);
+      remaining.push(item);
+    }
+  }
+  saveQueue(remaining);
+  if (remaining.length < queue.length) {
+    showToast('Offline sessions synced ✓');
+  }
+}
+
+// Listen for connectivity returning and flush the queue
+window.addEventListener('online', () => {
+  setStatus('✓ Central log connected', 'rgba(122,170,106,0.7)');
+  flushQueue();
+});
+window.addEventListener('offline', () => {
+  setStatus('⚠ Offline — sessions saved locally', 'rgba(200,168,75,0.65)');
+});
+
 // ─── SIGN IN ──────────────────────────────────────────────
 async function handleSignIn() {
   const now   = new Date();
   session     = { timeIn: now, timeOut: null };
   activeDocId = null;
 
-  if (firebaseReady) {
+  // Always save locally first — this is instant and works offline
+  localStorage.setItem(KEYS.session, JSON.stringify({ timeIn: now.toISOString(), docId: null }));
+  renderSession();
+
+  if (firebaseReady && navigator.onLine) {
     try {
       const ref = await fbAdd(fbCol(db, 'sessions'), {
         name: member.name, email: member.email, phone: member.phone, nfas: member.nfas,
@@ -489,17 +539,23 @@ async function handleSignIn() {
         timeOut: null, timeOutTs: null, status: 'in'
       });
       activeDocId = ref.id;
+      localStorage.setItem(KEYS.session, JSON.stringify({ timeIn: now.toISOString(), docId: activeDocId }));
       showToast('Signed in — welcome!');
     } catch(e) {
-      console.warn('Cloud sign-in failed', e);
-      showToast('Signed in (offline)');
+      console.warn('Cloud sign-in failed, queuing', e);
+      // Add to offline queue to sync later
+      const q = getQueue();
+      q.push({ type: 'signIn', name: member.name, email: member.email, phone: member.phone, nfas: member.nfas, timeIn: now.toISOString(), timeOut: null });
+      saveQueue(q);
+      showToast('Signed in — will sync when online');
     }
   } else {
-    showToast('Signed in — welcome!');
+    // Offline — queue it
+    const q = getQueue();
+    q.push({ type: 'signIn', name: member.name, email: member.email, phone: member.phone, nfas: member.nfas, timeIn: now.toISOString(), timeOut: null });
+    saveQueue(q);
+    showToast('Signed in — will sync when online');
   }
-
-  localStorage.setItem(KEYS.session, JSON.stringify({ timeIn: now.toISOString(), docId: activeDocId }));
-  renderSession();
 }
 
 // ─── SIGN OUT ─────────────────────────────────────────────
@@ -513,25 +569,49 @@ function cancelSignOut() {
 }
 async function confirmSignOut() {
   const now = new Date();
-  if (firebaseReady && activeDocId) {
+
+  // Save to local history immediately
+  const hist = JSON.parse(localStorage.getItem(KEYS.history) || '[]');
+  hist.unshift({ timeIn: session.timeIn.toISOString(), timeOut: now.toISOString() });
+  if (hist.length > 10) hist.splice(10);
+  localStorage.setItem(KEYS.history, JSON.stringify(hist));
+  localStorage.removeItem(KEYS.session);
+
+  if (firebaseReady && navigator.onLine && activeDocId) {
     try {
       await fbUpdate(fbDoc(db, 'sessions', activeDocId), {
         timeOut: now.toISOString(), timeOutTs: fbTs(),
         status: 'complete',
         durationMinutes: Math.round((now - session.timeIn) / 60000)
       });
-    } catch(e) { console.warn('Cloud sign-out failed', e); }
+      showToast('Signed out — goodbye!');
+    } catch(e) {
+      console.warn('Cloud sign-out failed, queuing', e);
+      const q = getQueue();
+      q.push({ type: 'signOut', docId: activeDocId, timeIn: session.timeIn.toISOString(), timeOut: now.toISOString() });
+      saveQueue(q);
+      showToast('Signed out — will sync when online');
+    }
+  } else {
+    // Offline — if we have a docId queue a sign-out update, otherwise the sign-in queue entry
+    // will be updated to include the sign-out time before it's ever written
+    const q = getQueue();
+    if (activeDocId) {
+      q.push({ type: 'signOut', docId: activeDocId, timeIn: session.timeIn.toISOString(), timeOut: now.toISOString() });
+    } else {
+      // Find the matching queued sign-in and add the sign-out to it so it syncs as a complete session
+      const signInEntry = q.find(i => i.type === 'signIn' && i.timeIn === session.timeIn.toISOString());
+      if (signInEntry) signInEntry.timeOut = now.toISOString();
+      else q.push({ type: 'signOut', docId: null, timeIn: session.timeIn.toISOString(), timeOut: now.toISOString() });
+    }
+    saveQueue(q);
+    showToast('Signed out — will sync when online');
   }
-  const hist = JSON.parse(localStorage.getItem(KEYS.history) || '[]');
-  hist.unshift({ timeIn: session.timeIn.toISOString(), timeOut: now.toISOString() });
-  if (hist.length > 10) hist.splice(10);
-  localStorage.setItem(KEYS.history, JSON.stringify(hist));
-  localStorage.removeItem(KEYS.session);
+
   session = null; activeDocId = null;
   document.getElementById('signoutConfirm').classList.remove('visible');
   renderSession();
   renderHistory();
-  showToast('Signed out — goodbye!');
 }
 
 // ─── LOCAL HISTORY ────────────────────────────────────────
