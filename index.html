@@ -488,35 +488,39 @@ function showScreen(id, isEdit) {
 }
 
 // ─── REGISTRATION ─────────────────────────────────────────
-async function saveRegistration() {
+function saveRegistration() {
   const name  = document.getElementById('inputName').value.trim();
   const email = document.getElementById('inputEmail').value.trim();
   const phone = document.getElementById('inputPhone').value.trim();
   const nfas  = document.getElementById('inputNFAS').value.trim();
 
-  if (!name)                       { showToast('Please enter your name');          return; }
+  if (!name)                        { showToast('Please enter your name');         return; }
   if (!email || !email.includes('@')){ showToast('Please enter a valid email');    return; }
-  if (!phone)                      { showToast('Please enter your phone number');  return; }
-  if (!nfas)                       { showToast('Please enter your NFAS number');  return; }
+  if (!phone)                       { showToast('Please enter your phone number'); return; }
+  if (!nfas)                        { showToast('Please enter your NFAS number'); return; }
 
+  // Save locally and navigate immediately — never waits for Firebase
   member = { name, email, phone, nfas };
   localStorage.setItem(KEYS.member, JSON.stringify(member));
-
-  if (firebaseReady) {
-    try {
-      const q    = fbQ(fbCol(db, 'members'), fbWhere('nfas', '==', nfas));
-      const snap = await fbGet(q);
-      if (snap.empty) {
-        await fbAdd(fbCol(db, 'members'), { name, email, phone, nfas, registeredAt: fbTs() });
-      } else {
-        await fbUpdate(fbDoc(db, 'members', snap.docs[0].id), { name, email, phone, updatedAt: fbTs() });
-      }
-    } catch(e) { console.warn('Member sync failed', e); }
-  }
-
   renderWelcome();
   showScreen('screenWelcome');
   showToast('Details saved');
+
+  // Sync to Firebase silently in the background
+  syncMemberToFirebase(name, email, phone, nfas);
+}
+
+async function syncMemberToFirebase(name, email, phone, nfas) {
+  if (!firebaseReady || !navigator.onLine) return;
+  try {
+    const q    = fbQ(fbCol(db, 'members'), fbWhere('nfas', '==', nfas));
+    const snap = await fbGet(q);
+    if (snap.empty) {
+      await fbAdd(fbCol(db, 'members'), { name, email, phone, nfas, registeredAt: fbTs() });
+    } else {
+      await fbUpdate(fbDoc(db, 'members', snap.docs[0].id), { name, email, phone, updatedAt: fbTs() });
+    }
+  } catch(e) { console.warn('Member sync failed — will retry when online', e); }
 }
 
 // ─── WELCOME RENDER ───────────────────────────────────────
