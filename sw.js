@@ -1,4 +1,4 @@
-const CACHE = 'archery-v2';
+const CACHE = 'archery-v3';
 
 const PRECACHE = [
   './',
