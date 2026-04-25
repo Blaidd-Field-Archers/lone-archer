@@ -107,8 +107,14 @@
   .stat-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 20px 22px;
-    position: relative; overflow: hidden; transition: border-color 0.2s;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s, background 0.2s;
+    cursor: pointer; user-select: none;
   }
+  .stat-card:hover { border-color: var(--gold-dim); background: rgba(45,74,45,0.5); }
+  .stat-card:active { transform: scale(0.98); }
+  .stat-hint { font-size: 10px; color: rgba(200,168,75,0.4); font-style: italic; margin-top: 6px; opacity: 0; transition: opacity 0.2s; }
+  .stat-card:hover .stat-hint { opacity: 1; }
   .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: 0.5; }
   .stat-card.highlight { border-color: rgba(122,170,106,0.35); }
   .stat-card.highlight::before { background: linear-gradient(90deg, transparent, var(--sage), transparent); opacity: 0.7; }
@@ -202,6 +208,51 @@
   .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--moss); border: 1px solid var(--gold-dim); border-radius: 999px; padding: 11px 22px; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.08em; color: var(--cream); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 200; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   .toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 150;
+    background: rgba(15,25,15,0.78); backdrop-filter: blur(4px);
+    display: none; align-items: flex-start; justify-content: center;
+    padding: 60px 20px 20px;
+    overflow-y: auto;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: #1f3320; border: 1px solid var(--gold-dim);
+    border-radius: 16px; width: 100%; max-width: 760px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6); overflow: hidden;
+    display: flex; flex-direction: column; max-height: calc(100vh - 80px);
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    background: rgba(45,74,45,0.55);
+  }
+  .modal-title { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.18em; color: var(--gold); text-transform: uppercase; }
+  .modal-close {
+    background: transparent; border: 1px solid var(--gold-dim); border-radius: 6px;
+    width: 30px; height: 30px; color: rgba(200,168,75,0.7); cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+  }
+  .modal-close:hover { border-color: var(--gold); color: var(--gold); }
+  .modal-body { padding: 18px 24px 24px; overflow-y: auto; }
+  .modal-search { width: 100%; margin-bottom: 14px; }
+
+  .member-row {
+    display: grid; grid-template-columns: 38px 1fr auto; gap: 14px; align-items: center;
+    padding: 12px 14px; border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px; margin-bottom: 8px; background: rgba(45,74,45,0.25);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .member-row:hover { border-color: rgba(122,170,106,0.3); background: rgba(45,74,45,0.4); }
+  .member-avatar { width: 38px; height: 38px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.35); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 13px; font-weight: 600; color: var(--sage); }
+  .member-name { font-size: 15px; font-weight: 500; color: var(--cream); }
+  .member-meta { font-size: 12px; color: rgba(245,240,232,0.45); margin-top: 2px; }
+  .member-since { font-family: 'Cinzel', serif; font-size: 11px; color: rgba(200,168,75,0.55); white-space: nowrap; }
+  .member-empty { text-align: center; padding: 36px; color: rgba(245,240,232,0.3); font-style: italic; }
+  .modal-foot { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-top: 1px solid var(--border); background: rgba(26,46,26,0.5); }
+  .modal-count { font-size: 12px; color: rgba(245,240,232,0.45); font-style: italic; }
+
   /* RESPONSIVE */
   @media (max-width: 700px) {
     .dash-header { padding: 14px 18px; }
@@ -267,30 +318,35 @@
 
     <!-- STATS -->
     <div class="stats-grid">
-      <div class="stat-card highlight">
+      <div class="stat-card highlight" onclick="drillOnSite()" title="Show currently on site">
         <div class="stat-label">On Site Now</div>
         <div class="stat-value green" id="statOnSite">—</div>
         <div class="stat-sub">members present</div>
+        <div class="stat-hint">tap to view ↓</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" onclick="drillToday()" title="Filter to today's sessions">
         <div class="stat-label">Today's Visits</div>
         <div class="stat-value" id="statToday">—</div>
         <div class="stat-sub">sign-ins today</div>
+        <div class="stat-hint">tap to filter ↓</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" onclick="drillAll()" title="Show all sessions">
         <div class="stat-label">Total Sessions</div>
         <div class="stat-value" id="statTotal">—</div>
         <div class="stat-sub">all time</div>
+        <div class="stat-hint">tap to view all ↓</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" onclick="drillCompleted()" title="Show completed sessions only">
         <div class="stat-label">Avg. Session</div>
         <div class="stat-value" id="statAvg">—</div>
         <div class="stat-sub">minutes on site</div>
+        <div class="stat-hint">tap to view ↓</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" onclick="showMembers()" title="View all registered members">
         <div class="stat-label">Members</div>
         <div class="stat-value" id="statMembers">—</div>
         <div class="stat-sub">registered</div>
+        <div class="stat-hint">tap to view list</div>
       </div>
     </div>
 
@@ -350,6 +406,24 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- MEMBERS MODAL -->
+<div class="modal-backdrop" id="membersModal" onclick="if(event.target===this) closeMembers()">
+  <div class="modal" role="dialog" aria-labelledby="membersModalTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="membersModalTitle">Registered Members</div>
+      <button class="modal-close" onclick="closeMembers()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input class="filter-input modal-search" id="memberSearch" type="text" placeholder="Search by name or NFAS…" oninput="renderMembers()">
+      <div id="membersList"><div class="member-empty">Loading…</div></div>
+    </div>
+    <div class="modal-foot">
+      <div class="modal-count" id="memberCount"></div>
+      <button class="export-btn" style="margin:0" onclick="exportMembersCSV()">↓ Export CSV</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════
 //  PASTE YOUR FIREBASE CONFIG HERE (same as index.html)
@@ -368,6 +442,7 @@ const ADMIN_PIN = '1066'; // Change this to match your app PIN
 
 let db, fbCol, fbGet, fbQ, fbOrderBy, fbLimit, fbWhere, fbOnSnapshot;
 let allSessions  = [];
+let allMembers   = [];
 let filtered     = [];
 let currentPage  = 1;
 const PAGE_SIZE  = 25;
@@ -435,7 +510,14 @@ function subscribeAll() {
   );
 
   unsubMembers = fbOnSnapshot(fbCol(db, 'members'),
-    snap => { document.getElementById('statMembers').textContent = snap.size; },
+    snap => {
+      allMembers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      document.getElementById('statMembers').textContent = snap.size;
+      // If the modal is open, refresh its contents live too
+      if (document.getElementById('membersModal').classList.contains('show')) {
+        renderMembers();
+      }
+    },
     err => console.warn('members listener:', err)
   );
 }
@@ -575,6 +657,121 @@ function changePage(dir) {
   renderTable();
   window.scrollTo({ top: document.querySelector('.section:last-child').offsetTop - 80, behavior: 'smooth' });
 }
+
+// ── STAT-CARD DRILL-DOWNS ─────────────────────────
+function scrollToSelector(sel) {
+  const el = document.querySelector(sel);
+  if (el) window.scrollTo({ top: el.offsetTop - 70, behavior: 'smooth' });
+}
+
+function drillOnSite() {
+  // Scroll to the "Currently On Site" panel
+  scrollToSelector('.section');
+}
+
+function drillToday() {
+  // Set date filter to today (local), clear other filters, scroll to log
+  const now = new Date();
+  const local = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  document.getElementById('filterName').value   = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterDate').value   = local;
+  applyFilters();
+  scrollToSelector('.section:last-child');
+}
+
+function drillAll() {
+  // Clear all filters, show everything, scroll to log
+  document.getElementById('filterName').value   = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterDate').value   = '';
+  applyFilters();
+  scrollToSelector('.section:last-child');
+}
+
+function drillCompleted() {
+  // Filter to completed sessions only
+  document.getElementById('filterName').value   = '';
+  document.getElementById('filterStatus').value = 'complete';
+  document.getElementById('filterDate').value   = '';
+  applyFilters();
+  scrollToSelector('.section:last-child');
+}
+
+// ── MEMBERS MODAL ─────────────────────────────────
+function showMembers() {
+  document.getElementById('membersModal').classList.add('show');
+  document.getElementById('memberSearch').value = '';
+  renderMembers();
+  setTimeout(() => document.getElementById('memberSearch').focus(), 50);
+}
+
+function closeMembers() {
+  document.getElementById('membersModal').classList.remove('show');
+}
+
+function renderMembers() {
+  const list   = document.getElementById('membersList');
+  const count  = document.getElementById('memberCount');
+  const search = document.getElementById('memberSearch').value.toLowerCase().trim();
+
+  // Sort by name (asc), then filter by search
+  const sorted = [...allMembers].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '')
+  );
+  const shown = search
+    ? sorted.filter(m =>
+        (m.name  || '').toLowerCase().includes(search) ||
+        (m.nfas  || '').toLowerCase().includes(search) ||
+        (m.email || '').toLowerCase().includes(search))
+    : sorted;
+
+  count.textContent = shown.length === allMembers.length
+    ? `${allMembers.length} member${allMembers.length === 1 ? '' : 's'}`
+    : `${shown.length} of ${allMembers.length}`;
+
+  if (!shown.length) {
+    list.innerHTML = `<div class="member-empty">${allMembers.length ? 'No matches' : 'No members registered yet'}</div>`;
+    return;
+  }
+
+  list.innerHTML = shown.map(m => {
+    const initials = (m.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    const since    = m.registeredAt && m.registeredAt.toDate ? fmtShort(m.registeredAt.toDate()) : '';
+    const meta     = [m.nfas, m.email, m.phone].filter(Boolean).join(' · ');
+    return `<div class="member-row">
+      <div class="member-avatar">${esc(initials)}</div>
+      <div style="min-width:0">
+        <div class="member-name">${esc(m.name || 'Unknown')}</div>
+        <div class="member-meta">${esc(meta)}</div>
+      </div>
+      <div class="member-since">${since ? 'joined ' + since : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function exportMembersCSV() {
+  if (!allMembers.length) { showToast('No members to export'); return; }
+  const rows = [['Name','NFAS','Email','Phone','Registered']];
+  [...allMembers]
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    .forEach(m => {
+      const since = m.registeredAt && m.registeredAt.toDate ? fmtShort(m.registeredAt.toDate()) : '';
+      rows.push([m.name||'', m.nfas||'', m.email||'', m.phone||'', since]);
+    });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
+    download: `blaidd-members-${new Date().toISOString().slice(0,10)}.csv`
+  });
+  a.click();
+  showToast('Members CSV downloaded');
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeMembers();
+});
 
 // ── EXPORT ────────────────────────────────────────
 function exportCSV() {
