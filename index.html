@@ -542,12 +542,21 @@ function renderSession() {
   const statusText = document.getElementById('statusText');
 
   if (!session || !session.timeIn) {
+    // Not signed in — both boxes empty
     btnIn.style.display = ''; btnOut.style.display = 'none';
     badge.className = 'status-badge signed-out';
     statusText.textContent = 'Not signed in';
     setTimeBox(null, 'timeInDisplay', 'dateInDisplay', 'boxIn');
     setTimeBox(null, 'timeOutDisplay', 'dateOutDisplay', 'boxOut');
+  } else if (session.completed && session.timeOut) {
+    // Just signed out — show both times until next sign-in
+    btnIn.style.display = ''; btnOut.style.display = 'none';
+    badge.className = 'status-badge signed-out';
+    statusText.textContent = 'Signed out';
+    setTimeBox(session.timeIn,  'timeInDisplay',  'dateInDisplay',  'boxIn');
+    setTimeBox(session.timeOut, 'timeOutDisplay', 'dateOutDisplay', 'boxOut');
   } else {
+    // Currently signed in — only sign-in box filled
     btnIn.style.display = 'none'; btnOut.style.display = '';
     badge.className = 'status-badge signed-in';
     statusText.textContent = 'Currently signed in';
@@ -716,7 +725,11 @@ async function confirmSignOut() {
     showToast('Signed out — will sync when online');
   }
 
-  session = null; activeDocId = null;
+  // Keep the completed session in memory so renderSession can show both
+  // sign-in and sign-out times. localStorage is cleared above, so a page
+  // reload will reset cleanly; the next handleSignIn will overwrite this.
+  session = { timeIn: session.timeIn, timeOut: now, completed: true };
+  activeDocId = null;
   document.getElementById('signoutConfirm').classList.remove('visible');
   renderSession();
   renderHistory();
