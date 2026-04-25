@@ -366,14 +366,14 @@ const FIREBASE_CONFIG = {
 const ADMIN_PIN = '1066'; // Change this to match your app PIN
 // ═══════════════════════════════════════════════════
 
-let db, fbCol, fbGet, fbQ, fbOrderBy, fbLimit, fbWhere;
+let db, fbCol, fbGet, fbQ, fbOrderBy, fbLimit, fbWhere, fbOnSnapshot;
 let allSessions  = [];
 let filtered     = [];
 let currentPage  = 1;
 const PAGE_SIZE  = 25;
 let sortKey      = 'date';
 let sortDir      = -1; // -1 = desc, 1 = asc
-let autoRefresh;
+let unsubSessions, unsubMembers;
 
 // ── PIN ──────────────────────────────────────────
 function checkPin() {
@@ -397,44 +397,52 @@ async function initFirebase() {
       import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js')
     ]);
     const app = am.initializeApp(FIREBASE_CONFIG);
-    db        = fm.getFirestore(app);
-    fbCol     = fm.collection;
-    fbGet     = fm.getDocs;
-    fbQ       = fm.query;
-    fbOrderBy = fm.orderBy;
-    fbLimit   = fm.limit;
-    fbWhere   = fm.where;
-    loadAll();
-    // Auto-refresh every 60 seconds
-    autoRefresh = setInterval(loadAll, 60000);
+    db           = fm.getFirestore(app);
+    fbCol        = fm.collection;
+    fbGet        = fm.getDocs;
+    fbQ          = fm.query;
+    fbOrderBy    = fm.orderBy;
+    fbLimit      = fm.limit;
+    fbWhere      = fm.where;
+    fbOnSnapshot = fm.onSnapshot;
+    subscribeAll();
   } catch(e) {
     console.error('Firebase failed:', e);
     showToast('Firebase connection failed');
   }
 }
 
-// ── LOAD DATA ────────────────────────────────────
-async function loadAll() {
-  try {
-    await Promise.all([loadSessions(), loadMembers()]);
-    document.getElementById('lastUpdated').textContent = 'Updated ' + fmtTime(new Date());
-  } catch(e) {
-    console.error(e);
-    showToast('Failed to load data');
-  }
+// Subscribe to live updates. We deliberately do NOT use orderBy on the
+// Firestore query — Firestore silently excludes documents that are missing
+// the field, and older app versions may have written sessions without
+// `timeInTs`. We sort client-side on `timeIn` instead, which is always set.
+function subscribeAll() {
+  if (unsubSessions) unsubSessions();
+  if (unsubMembers)  unsubMembers();
+
+  unsubSessions = fbOnSnapshot(fbCol(db, 'sessions'),
+    snap => {
+      allSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      computeStats();
+      renderPresent();
+      applyFilters();
+      document.getElementById('lastUpdated').textContent = 'Updated ' + fmtTime(new Date());
+    },
+    err => {
+      console.error('sessions listener:', err);
+      showToast('Live updates failed — check Firestore rules');
+    }
+  );
+
+  unsubMembers = fbOnSnapshot(fbCol(db, 'members'),
+    snap => { document.getElementById('statMembers').textContent = snap.size; },
+    err => console.warn('members listener:', err)
+  );
 }
 
-async function loadSessions() {
-  const snap = await fbGet(fbQ(fbCol(db, 'sessions'), fbOrderBy('timeInTs', 'desc'), fbLimit(500)));
-  allSessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  computeStats();
-  renderPresent();
-  applyFilters();
-}
-
-async function loadMembers() {
-  const snap = await fbGet(fbCol(db, 'members'));
-  document.getElementById('statMembers').textContent = snap.size;
+// Manual refresh button — re-subscribe (covers transient connection blips).
+function loadAll() {
+  if (db) subscribeAll();
 }
 
 // ── STATS ─────────────────────────────────────────
@@ -491,8 +499,10 @@ function applyFilters() {
     if (name   && !s.name.toLowerCase().includes(name) && !s.nfas.toLowerCase().includes(name)) return false;
     if (status && s.status !== status) return false;
     if (date) {
-      const d = new Date(s.timeIn).toISOString().slice(0,10);
-      if (d !== date) return false;
+      // Compare in local time (the date input is a local date)
+      const dt = new Date(s.timeIn);
+      const local = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+      if (local !== date) return false;
     }
     return true;
   });
