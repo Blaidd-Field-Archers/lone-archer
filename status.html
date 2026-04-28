@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a2e1a">
+<title>Blaidd Field Archers — Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --forest: #1a2e1a; --moss: #2d4a2d; --leaf: #4a7c4a; --sage: #7aaa6a;
+    --cream: #f5f0e8; --gold: #c8a84b; --gold-dim: rgba(200,168,75,0.4);
+    --surface: rgba(45,74,45,0.35); --border: rgba(200,168,75,0.15);
+    --radius: 14px;
+  }
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background:
+      radial-gradient(ellipse at 10% 0%, rgba(74,124,74,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 100%, rgba(45,74,45,0.18) 0%, transparent 55%),
+      #1a2e1a;
+    color: var(--cream); min-height: 100vh; padding: 24px 18px 48px;
+    max-width: 540px; margin: 0 auto;
+  }
+  header { text-align: center; padding: 8px 0 20px; }
+  .logo { width: 56px; height: 56px; margin: 0 auto 8px; }
+  .club  { font-family: 'Cinzel', serif; font-size: 17px; font-weight: 600; color: var(--gold); letter-spacing: 0.13em; text-transform: uppercase; }
+  .sub   { font-size: 13px; color: rgba(245,240,232,0.45); font-style: italic; margin-top: 2px; }
+
+  .live { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; padding: 5px 14px; border-radius: 999px; background: rgba(74,124,74,0.18); border: 1px solid rgba(122,170,106,0.3); font-size: 11px; letter-spacing: 0.1em; color: rgba(122,170,106,0.85); font-family: 'Cinzel', serif; text-transform: uppercase; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sage); box-shadow: 0 0 6px rgba(122,170,106,0.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px; margin-top: 18px;
+    position: relative; overflow: hidden;
+  }
+  .card.highlight { border-color: rgba(122,170,106,0.35); }
+  .card.highlight::before { content:''; position:absolute; top:0; left:0; right:0; height: 2px; background: linear-gradient(90deg, transparent, var(--sage), transparent); opacity: 0.7; }
+
+  .label { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.2em; color: rgba(200,168,75,0.6); text-transform: uppercase; }
+  .big   { font-family: 'Cinzel', serif; font-size: 56px; font-weight: 600; line-height: 1; margin-top: 8px; color: var(--cream); }
+  .big.green { color: var(--sage); }
+  .small { font-size: 13px; color: rgba(245,240,232,0.4); font-style: italic; margin-top: 6px; }
+
+  .row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .person {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .person:last-child { border-bottom: none; }
+  .av { width: 40px; height: 40px; border-radius: 50%; background: rgba(74,124,74,0.4); border: 1px solid rgba(122,170,106,0.35); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 13px; color: var(--sage); flex-shrink: 0; font-weight: 600; }
+  .nm  { font-size: 15px; color: var(--cream); font-weight: 500; }
+  .mt  { font-size: 12px; color: rgba(245,240,232,0.4); font-style: italic; }
+  .du  { font-family: 'Cinzel', serif; font-size: 13px; color: var(--sage); margin-left: auto; flex-shrink: 0; }
+
+  .empty { text-align: center; padding: 28px 0; color: rgba(245,240,232,0.3); font-style: italic; font-size: 14px; }
+  .footer { text-align: center; margin-top: 24px; font-size: 11px; color: rgba(245,240,232,0.25); font-style: italic; letter-spacing: 0.05em; }
+
+  .err { background: rgba(180,80,80,0.12); border-color: rgba(180,80,80,0.35); color: rgba(245,200,200,0.85); }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="32" cy="32" r="30" stroke="#c8a84b" stroke-width="1" opacity="0.4"/>
+    <circle cx="32" cy="32" r="21" stroke="#c8a84b" stroke-width="1" opacity="0.55"/>
+    <circle cx="32" cy="32" r="12" stroke="#c8a84b" stroke-width="1" opacity="0.75"/>
+    <circle cx="32" cy="32" r="4.5" fill="#c8a84b" opacity="0.95"/>
+    <line x1="48" y1="16" x2="35" y2="29" stroke="#c8a84b" stroke-width="1.8" stroke-linecap="round"/>
+    <polygon points="32,32 36.5,17 46,12" fill="#c8a84b" opacity="0.85"/>
+  </svg>
+  <div class="club">Blaidd Field Archers</div>
+  <div class="sub">Live status</div>
+  <div class="live"><span class="live-dot"></span><span id="liveLabel">Connecting…</span></div>
+</header>
+
+<div class="card highlight">
+  <div class="label">On Site Now</div>
+  <div class="big green" id="bigOnSite">—</div>
+  <div class="small">members currently signed in</div>
+</div>
+
+<div class="row-grid">
+  <div class="card">
+    <div class="label">Today</div>
+    <div class="big" id="bigToday">—</div>
+    <div class="small">sign-ins today</div>
+  </div>
+  <div class="card">
+    <div class="label">Last 7 Days</div>
+    <div class="big" id="bigWeek">—</div>
+    <div class="small">visits this week</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="label" style="margin-bottom: 10px">Who's Here Right Now</div>
+  <div id="onSiteList"><div class="empty">Loading…</div></div>
+</div>
+
+<div class="footer">Updates live · last sync <span id="lastSync">—</span></div>
+
+<script>
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyD3wP0IZXyMylktdjtoS7Eo_sCjSXT7WvA",
+  authDomain:        "blaidd-lone-archer.firebaseapp.com",
+  projectId:         "blaidd-lone-archer",
+  storageBucket:     "blaidd-lone-archer.firebasestorage.app",
+  messagingSenderId: "1037274086483",
+  appId:             "1:1037274086483:web:b2cf8448a669d5a01c9aa6"
+};
+
+let allSessions = [];
+
+function fmtTime(d) { return d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function localDateString(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function render() {
+  const now      = new Date();
+  const todayStr = localDateString(now);
+  const weekAgo  = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+
+  const onSite = allSessions.filter(s => s.status === 'in');
+  const today  = allSessions.filter(s => s.timeIn && localDateString(new Date(s.timeIn)) === todayStr);
+  const week   = allSessions.filter(s => s.timeIn && new Date(s.timeIn).getTime() >= weekAgo);
+
+  document.getElementById('bigOnSite').textContent = onSite.length;
+  document.getElementById('bigToday').textContent  = today.length;
+  document.getElementById('bigWeek').textContent   = week.length;
+
+  const listEl = document.getElementById('onSiteList');
+  if (!onSite.length) {
+    listEl.innerHTML = '<div class="empty">No one signed in right now</div>';
+  } else {
+    const sorted = [...onSite].sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+    listEl.innerHTML = sorted.map(s => {
+      const tin = new Date(s.timeIn);
+      const elapsed = Math.max(0, Math.round((Date.now() - tin) / 60000));
+      const el = elapsed < 60 ? elapsed + 'm' : Math.floor(elapsed/60) + 'h ' + (elapsed%60) + 'm';
+      const initials = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+      return `<div class="person">
+        <div class="av">${esc(initials)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="nm">${esc(s.name || 'Unknown')}</div>
+          <div class="mt">${esc(s.nfas || '')} · since ${fmtTime(tin)}</div>
+        </div>
+        <div class="du">${el}</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('lastSync').textContent = fmtTime(now);
+}
+
+async function start() {
+  try {
+    const [am, fm] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js')
+    ]);
+    const app = am.initializeApp(FIREBASE_CONFIG);
+    const db  = fm.getFirestore(app);
+
+    document.getElementById('liveLabel').textContent = 'Live';
+
+    fm.onSnapshot(fm.collection(db, 'sessions'),
+      snap => {
+        allSessions = snap.docs.map(d => d.data());
+        render();
+      },
+      err => {
+        console.error('listener:', err);
+        document.getElementById('liveLabel').textContent = 'Connection lost';
+      }
+    );
+
+    // Tick durations every minute even if no Firestore change
+    setInterval(render, 60000);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('liveLabel').textContent = 'Offline';
+    document.getElementById('onSiteList').innerHTML =
+      '<div class="empty">Cannot reach the central log right now</div>';
+  }
+}
+
+start();
+</script>
+</body>
+</html>
