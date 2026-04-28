@@ -1,8 +1,10 @@
-const CACHE = 'archery-v4';
+const CACHE = 'archery-v6';
 
 const PRECACHE = [
   './',
   './index.html',
+  './dashboard.html',
+  './status.html',
   'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300&display=swap',
 ];
 
