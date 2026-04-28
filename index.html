@@ -305,6 +305,13 @@
       <div class="history-title">My Recent Sessions</div>
       <div id="historyList"><div class="no-sessions">No sessions recorded yet</div></div>
     </div>
+    <div class="history-section">
+      <div class="history-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Currently On Site</span>
+        <span id="whoCount" style="font-family:'Cinzel',serif;font-size:11px;color:rgba(122,170,106,0.7);background:rgba(74,124,74,0.2);border:1px solid rgba(122,170,106,0.3);border-radius:999px;padding:2px 9px;letter-spacing:0.05em">—</span>
+      </div>
+      <div id="whoList"><div class="no-sessions">Connecting…</div></div>
+    </div>
     <div class="divider"></div>
     <button class="link-btn" onclick="showScreen('screenRegister', true)">Edit my details</button>
     <button class="btn btn-danger" onclick="confirmClearData()">Clear my data &amp; start over</button>
@@ -397,8 +404,10 @@ let session     = null;
 let activeDocId = null;
 
 // Firebase handles — undefined until loadFirebase() resolves
-let db, fbCol, fbAdd, fbUpdate, fbDoc, fbQ, fbOrderBy, fbLimit, fbGet, fbTs, fbWhere;
+let db, fbCol, fbAdd, fbUpdate, fbDoc, fbQ, fbOrderBy, fbLimit, fbGet, fbTs, fbWhere, fbOnSnapshot;
 let firebaseReady = false;
+let unsubWhosHere = null;
+let whosHereTicker = null;
 
 // ─── BOOT ─────────────────────────────────────────────────
 // init() always runs synchronously from localStorage.
@@ -451,9 +460,11 @@ async function loadFirebase() {
     fbGet      = fm.getDocs;
     fbTs       = fm.serverTimestamp;
     fbWhere    = fm.where;
+    fbOnSnapshot = fm.onSnapshot;
     firebaseReady = true;
     setStatus('✓ Central log connected', 'rgba(122,170,106,0.7)');
     flushQueue(); // sync any sessions recorded while offline
+    subscribeWhosHere(); // live "currently on site" panel
   } catch(e) {
     setStatus('⚠ Central log unavailable', 'rgba(200,168,75,0.55)');
     console.warn('Firebase load failed:', e);
@@ -748,6 +759,65 @@ function renderHistory() {
     return `<div class="history-item">
       <div><div class="history-date">${fmtShort(tin)}</div><div class="history-times">${fmtTime(tin)} → ${fmtTime(tout)}</div></div>
       <div class="history-duration">${ds}</div></div>`;
+  }).join('');
+}
+
+// ─── WHO'S ON SITE (live panel on welcome screen) ─────────
+function subscribeWhosHere() {
+  if (!firebaseReady || !fbOnSnapshot) return;
+  if (unsubWhosHere) unsubWhosHere();
+
+  const q = fbQ(fbCol(db, 'sessions'), fbWhere('status', '==', 'in'));
+  unsubWhosHere = fbOnSnapshot(q,
+    snap => renderWhosHere(snap.docs.map(d => d.data())),
+    err  => { console.warn('whos-here listener:', err); renderWhosHere(null); }
+  );
+
+  // Tick once a minute so the "since X" durations stay accurate without
+  // waiting for a Firestore change.
+  if (whosHereTicker) clearInterval(whosHereTicker);
+  whosHereTicker = setInterval(() => {
+    if (window._lastWhosHere) renderWhosHere(window._lastWhosHere);
+  }, 60000);
+}
+
+function renderWhosHere(list) {
+  const el    = document.getElementById('whoList');
+  const count = document.getElementById('whoCount');
+  if (!el) return;
+
+  if (list === null) {
+    el.innerHTML = '<div class="no-sessions">Live data unavailable</div>';
+    if (count) count.textContent = '—';
+    window._lastWhosHere = null;
+    return;
+  }
+
+  window._lastWhosHere = list;
+  if (count) count.textContent = list.length;
+
+  if (!list.length) {
+    el.innerHTML = '<div class="no-sessions">No members on site right now</div>';
+    return;
+  }
+
+  // Most-recent sign-in first
+  const sorted = [...list].sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+  const now    = Date.now();
+
+  el.innerHTML = sorted.map(m => {
+    const tin    = new Date(m.timeIn);
+    const elapsed = Math.max(0, Math.round((now - tin) / 60000));
+    const elStr  = elapsed < 60 ? elapsed + 'm' : Math.floor(elapsed/60) + 'h ' + (elapsed%60) + 'm';
+    const initials = (m.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    return `<div class="present-item">
+      <div class="present-avatar">${esc(initials)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="present-name">${esc(m.name || 'Unknown')}</div>
+        <div class="present-meta">${esc(m.nfas || '')} · since ${fmtTime(tin)}</div>
+      </div>
+      <div style="font-family:'Cinzel',serif;font-size:12px;color:rgba(122,170,106,0.65);flex-shrink:0">${elStr}</div>
+    </div>`;
   }).join('');
 }
 
